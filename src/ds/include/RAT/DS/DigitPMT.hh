@@ -40,6 +40,10 @@ class DigitPMT : public TObject {
   virtual void SetDigitizedCharge(Double_t _dCharge) { this->dCharge = _dCharge; }
   virtual Double_t GetDigitizedCharge() { return dCharge; }
 
+  /** Non-linear charge response */
+  virtual void SetNonLinearCharge(Double_t _dNonLinearCharge) { this->dNonLinearCharge = _dNonLinearCharge; }
+  virtual Double_t GetNonLinearCharge() { return dNonLinearCharge; }
+
   /** Integrated total charge [pC] */
   virtual void SetDigitizedTotalCharge(Double_t _dTCharge) { this->dTCharge = _dTCharge; }
   virtual Double_t GetDigitizedTotalCharge() { return dTCharge; }
@@ -133,6 +137,7 @@ class DigitPMT : public TObject {
   Int_t id = -9999;
   Double_t dTime = -9999;
   Double_t dCharge = -9999;
+  Double_t dNonLinearCharge = -9999;
   Double_t dTCharge = -9999;
   Int_t nCrossings = -9999;
   Double_t timeOverThresh = -9999;
