@@ -34,6 +34,10 @@ class MCNestedTubeHit : public TObject {
   virtual void SetHitID(Int_t _hitID) { hitID = _hitID; }
   virtual Int_t GetHitID() const { return hitID; }
 
+  /** process that created the photon */
+  virtual void SetCreatorProcess(std::string _process) { process = _process; }
+  virtual std::string GetCreatorProcess() const { return process; }
+
   /** Operator overload **/
   bool operator<(const MCNestedTubeHit &mcp) const { return (hitTime < mcp.hitTime); }
   bool operator>(const MCNestedTubeHit &mcp) const { return (hitTime > mcp.hitTime); }
@@ -44,6 +48,7 @@ class MCNestedTubeHit : public TObject {
   Double_t hitTime;
   TVector3 pos;
 
+  std::string process;
   Int_t hitID;
   Int_t fiberID;
 };
