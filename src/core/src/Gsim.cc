@@ -585,9 +585,12 @@ void Gsim::MakeEvent(const G4Event *g4ev, DS::Root *ds) {
     if (hit_collection->GetName() != "FiberSenDet" || hit_collection->GetSize() == 0) continue;
     DS::MCNestedTube *rat_mcnt = mc->AddNewMCNestedTube();
     G4String det_name = hit_collection->GetSDname();
+    GeoFiberSensitiveDetectorHit *hit0 = (GeoFiberSensitiveDetectorHit *)hit_collection->GetHit(0);
+    std::vector<G4int> readout_ch_nums = hit0->GetReadoutChNums();
     std::string fibre_id_str = det_name.erase(0, 6).data();
     int fibre_id = std::stoi(fibre_id_str);
     rat_mcnt->SetID(fibre_id);
+    rat_mcnt->SetReadoutChNums(readout_ch_nums[0], readout_ch_nums[1]);
     // only process fibers
     // info << hit_collection->GetSDname() << newline;
     for (size_t hit = 0; hit < hit_collection->GetSize(); hit++) {
@@ -637,6 +640,8 @@ void Gsim::AddMCNestedTubeHit(DS::MCNestedTube *rat_mcnt, const GeoFiberSensitiv
 
   rat_mchit->SetHitID(hit->GetID());
   rat_mchit->SetHitTime(hit->GetTime());
+
+  rat_mchit->SetCreatorProcess(hit->GetProc());
 }
 
 void Gsim::SetStoreParticleTraj(const G4String &particleName, const bool &gDoStore) {
