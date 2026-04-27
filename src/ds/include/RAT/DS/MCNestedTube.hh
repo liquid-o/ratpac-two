@@ -26,6 +26,10 @@ class MCNestedTube : public TObject {
   virtual Int_t GetID() const { return id; };
   virtual void SetID(Int_t _id) { id = _id; };
 
+  /** Readout number */
+  virtual std::vector<Int_t> GetReadoutChNums() const { return readout_ch_nums; }
+  virtual void SetReadoutChNums(Int_t _val1, Int_t _val2) { readout_ch_nums[0] = _val1; readout_ch_nums[1] = _val2; };
+
   /** List of photons captured in this NestedTube. */
   MCNestedTubeHit *GetMCNestedTubeHit(Int_t i) { return &photon[i]; }
   Int_t GetMCNestedTubeHitCount() const { return photon.size(); }
@@ -41,6 +45,7 @@ class MCNestedTube : public TObject {
 
  protected:
   Int_t id;
+  std::vector<Int_t> readout_ch_nums = {0, 0};
   Int_t type;
   std::vector<MCNestedTubeHit> photon;
 };
