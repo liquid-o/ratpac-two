@@ -11,6 +11,7 @@
 #include <TObject.h>
 #include <TVector3.h>
 
+#include <iostream>
 #include <algorithm>
 
 namespace RAT {
@@ -54,6 +55,22 @@ class PMTInfo : public TObject {
 
   virtual int GetChannelNumber(int id) const { return channel_num.at(id); }
   virtual void SetChannelNumber(int id, int _ch) { channel_num.at(id) = _ch; }
+
+  virtual int GetIndexFromChannelNumber(int _ch) const {
+    std::vector<int> indices;
+    for (size_t i = 0; i < channel_num.size(); ++i) {
+      if (channel_num.at(i) == _ch) {
+        indices.push_back(i);
+      }
+    }
+    if (indices.size() == 0) {
+      std::cerr << "PMTInfo: No PMTs with channel number " << _ch << " found." << std::endl;
+      return -1;
+    } else if (indices.size() > 1) {
+      std::cerr << "PMTInfo: Multiple PMTs with channel number " << _ch << " found." << std::endl;
+    }
+    return indices.at(0);
+  }
 
   virtual int GetType(int id) const { return type.at(id); }
   virtual void SetType(int id, int _type) { type.at(id) = _type; }
