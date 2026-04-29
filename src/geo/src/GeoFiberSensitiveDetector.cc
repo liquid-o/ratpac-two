@@ -15,10 +15,12 @@
 
 namespace RAT {
 
-GeoFiberSensitiveDetector::GeoFiberSensitiveDetector(G4String name) : G4VSensitiveDetector(name) {
+GeoFiberSensitiveDetector::GeoFiberSensitiveDetector(G4String name, G4int _readout_ch_num_1, G4int _readout_ch_num_2) : G4VSensitiveDetector(name) {
   G4String HCname;
   collectionName.insert(HCname = "FiberSenDet");
   HCID = -1;
+  readout_ch_num_1 = _readout_ch_num_1;
+  readout_ch_num_2 = _readout_ch_num_2;
 }
 
 GeoFiberSensitiveDetector::~GeoFiberSensitiveDetector() { ; }
@@ -176,6 +178,7 @@ G4bool GeoFiberSensitiveDetector::ProcessHits(G4Step *aStep, G4TouchableHistory 
       debug << "GeoFiberSensitiveDetector::ProcessHits creating a new hit." << newline;
       G4ThreeVector pos = {worldPos.x(), worldPos.y(), worldPos.z()};
       GeoFiberSensitiveDetectorHit *aHit = new GeoFiberSensitiveDetectorHit(uid, hitTime, pos);
+      aHit->SetReadoutChNums(readout_ch_num_1, readout_ch_num_2);
       G4VPhysicalVolume *thePhysical = theTouchable->GetVolume();
       aHit->SetLogV(thePhysical->GetLogicalVolume());
       G4AffineTransform aTrans = theTouchable->GetHistory()->GetTopTransform();

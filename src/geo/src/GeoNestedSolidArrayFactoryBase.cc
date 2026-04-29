@@ -111,6 +111,17 @@ G4VPhysicalVolume *GeoNestedSolidArrayFactoryBase::Construct(DBLinkPtr table) {
     orient_point.set(orient_point_array[0], orient_point_array[1], orient_point_array[2]);
   }
 
+  std::vector<int> readout_ch_num_1, readout_ch_num_2;
+  try {
+    readout_ch_num_1 = lpos_table->GetIArray("readout_channel_number_1");
+    readout_ch_num_2 = lpos_table->GetIArray("readout_channel_number_2");
+  } catch (DBNotFoundError &e) {
+    readout_ch_num_1.resize(max_solids);
+    readout_ch_num_2.resize(max_solids);
+    for (int i = 0; i < max_solids; i++) readout_ch_num_1[i] = 0;
+    for (int i = 0; i < max_solids; i++) readout_ch_num_2[i] = 0;
+  }
+
   // Optionally can rescale Solid radius from mother volume center for
   // case where Solids have spherical layout symmetry
 
@@ -181,7 +192,7 @@ G4VPhysicalVolume *GeoNestedSolidArrayFactoryBase::Construct(DBLinkPtr table) {
       std::string inner_material = table->GetS("inner_material");
       std::string outer_material = table->GetS("outer_material");
       nestedtubeinfo.AddNestedTube(tubepos, soliddir, length, core_r, inner_r, outer_r, core_material, inner_material,
-                                   outer_material);
+                                   outer_material, readout_ch_num_1[solidID], readout_ch_num_2[solidID]);
 
       // instance of physical volume for fibre inside mother volume
       construction->PlaceNestedTube(tuberot, tubepos, tubename, log_tube, phys_mother, false, solidID);

@@ -24,7 +24,7 @@ class NestedTubeInfo : public TObject {
   virtual void AddNestedTube(const G4ThreeVector& _pos, const G4ThreeVector& _dir, const double _length,
                              const double _core_r, const double _inner_r, const double _outer_r,
                              const std::string _core_material, const std::string _inner_material,
-                             const std::string _outer_material) {
+                             const std::string _outer_material, const int _readout_ch_num_1 = 0, const int _readout_ch_num_2 = 0) {
     pos.push_back(_pos);
     dir.push_back(_dir);
     length.push_back(_length);
@@ -34,6 +34,8 @@ class NestedTubeInfo : public TObject {
     core_material.push_back(_core_material);
     inner_material.push_back(_inner_material);
     outer_material.push_back(_outer_material);
+    readout_ch_num_1.push_back(_readout_ch_num_1);
+    readout_ch_num_2.push_back(_readout_ch_num_2);
   }
 
   virtual void AddNestedTube(const G4ThreeVector& _pos, const G4ThreeVector& _dir, const int _length) {
@@ -69,6 +71,14 @@ class NestedTubeInfo : public TObject {
   virtual std::string GetOuterMaterial(int id) const { return outer_material.at(id); }
   virtual void SetOuterMaterial(int id, double _outer_material) { outer_material.at(id) = _outer_material; }
 
+  virtual std::vector<int> GetReadoutChNums(int id) const { 
+    std::vector<int> readout_ch_nums = {0, 0};
+    readout_ch_nums.at(0) = readout_ch_num_1.at(id);
+    readout_ch_nums.at(1) = readout_ch_num_2.at(id);
+    return readout_ch_nums;
+  }
+  virtual void SetReadoutChNums(int id, int _readout_ch_num_1, int _readout_ch_num_2) { readout_ch_num_1.at(id) = _readout_ch_num_1; readout_ch_num_2.at(id) = _readout_ch_num_2;}
+
   ClassDef(NestedTubeInfo, 2);
 
  protected:
@@ -81,6 +91,8 @@ class NestedTubeInfo : public TObject {
   std::vector<std::string> core_material;
   std::vector<std::string> inner_material;
   std::vector<std::string> outer_material;
+  std::vector<int> readout_ch_num_1 = {0};
+  std::vector<int> readout_ch_num_2 = {0};
 };
 
 }  // namespace DS

@@ -52,7 +52,7 @@ GeoNestedTubeConstruction::GeoNestedTubeConstruction(DBLinkPtr table, DBLinkPtr 
   Log::Assert(fParams.inner_core, "GeoNestedTubeConstruction: " + tube_name + " has an invalid core surface material");
 }
 
-G4LogicalVolume *GeoNestedTubeConstruction::BuildVolume(const std::string &prefix, int ID, DBLinkPtr table) {
+G4LogicalVolume *GeoNestedTubeConstruction::BuildVolume(const std::string &prefix, int ID, DBLinkPtr table, G4int readout_ch_num_1, G4int readout_ch_num_2) {
   if (log_tube) {
     return log_tube;
   }
@@ -75,7 +75,7 @@ G4LogicalVolume *GeoNestedTubeConstruction::BuildVolume(const std::string &prefi
   // set as sensitive detector if applicable
   try {
     std::string sensitive_detector = table->GetS("sensitive_detector");
-    GeoFiberSensitiveDetector *sensitive = new GeoFiberSensitiveDetector(sensitive_detector + std::to_string(ID));
+    GeoFiberSensitiveDetector *sensitive = new GeoFiberSensitiveDetector(sensitive_detector + std::to_string(ID), readout_ch_num_1, readout_ch_num_2);
     G4SDManager *sdman = G4SDManager::GetSDMpointer();
     sdman->AddNewDetector(sensitive);
     core_log->SetSensitiveDetector(sensitive);

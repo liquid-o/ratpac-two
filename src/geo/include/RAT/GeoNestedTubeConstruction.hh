@@ -39,7 +39,7 @@ class GeoNestedTubeConstruction {
   GeoNestedTubeConstruction(DBLinkPtr table, DBLinkPtr postable, G4LogicalVolume *mother, int ID);
   virtual ~GeoNestedTubeConstruction() {}
 
-  virtual G4LogicalVolume *BuildVolume(const std::string &prefix, int ID, DBLinkPtr table);
+  virtual G4LogicalVolume *BuildVolume(const std::string &prefix, int ID, DBLinkPtr table, G4int readout_ch_num_1 = 0, G4int readout_ch_num_2 = 0);
   virtual G4VSolid *BuildSolid(const std::string &prefix);
   virtual G4PVPlacement *PlaceNestedTube(G4RotationMatrix *tuberot, G4ThreeVector tubepos, const std::string &name,
                                          G4LogicalVolume *logi_tube, G4VPhysicalVolume *mother_phys, bool booleanSolid,

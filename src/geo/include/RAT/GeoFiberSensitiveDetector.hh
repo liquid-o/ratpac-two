@@ -12,7 +12,7 @@ namespace RAT {
 
 class GeoFiberSensitiveDetector : public G4VSensitiveDetector {
  public:
-  GeoFiberSensitiveDetector(G4String name);
+  GeoFiberSensitiveDetector(G4String name, G4int readout_ch_num_1 = 0, G4int readout_ch_num_2 = 0);
   virtual ~GeoFiberSensitiveDetector();
 
   virtual void Initialize(G4HCofThisEvent *HCE);
@@ -45,6 +45,8 @@ class GeoFiberSensitiveDetector : public G4VSensitiveDetector {
 
   GeoFiberSensitiveDetectorHitsCollection *_hitsCollection;
   G4int HCID;
+  G4int readout_ch_num_1;
+  G4int readout_ch_num_2;
   G4HCofThisEvent *_HCE;
 };
 
