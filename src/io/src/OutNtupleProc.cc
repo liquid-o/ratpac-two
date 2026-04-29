@@ -76,14 +76,14 @@ OutNtupleProc::OutNtupleProc() : Processor("outntuple") {
         waveform_fitter_FOMs[fitter_name].clear();
       }
     }
-  }
-  event_fitters = table->GetSArray("event_fitters");
-  for (const std::string &full_name : event_fitters) {
-    if (event_fitter_FOMs.find(full_name) != event_fitter_FOMs.end()) continue;
-    try {
-      event_fitter_FOMs[full_name] = table->GetSArray("event_fitter_FOM_" + full_name);
-    } catch (DBNotFoundError &e) {
-      event_fitter_FOMs[full_name].clear();
+    event_fitters = table->GetSArray("event_fitters");
+    for (const std::string &full_name : event_fitters) {
+      if (event_fitter_FOMs.find(full_name) != event_fitter_FOMs.end()) continue;
+      try {
+        event_fitter_FOMs[full_name] = table->GetSArray("event_fitter_FOM_" + full_name);
+      } catch (DBNotFoundError &e) {
+        event_fitter_FOMs[full_name].clear();
+      }
     }
   }
 }
