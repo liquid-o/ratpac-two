@@ -72,6 +72,8 @@ class WaveformPrep : public Processor {
   // Use Cable offsets specified in channel status?
   int fApplyCableOffset;
   int fZeroSuppress;
+  int fPositivePulse;
+  int fThresholdCrossing;
 
   void DoAnalysis(DS::DigitPMT *pmt, const std::vector<UShort_t> &DigitWfm, double timeOffset);
 };

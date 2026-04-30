@@ -21,6 +21,9 @@
 // Run configuration
 "apply_cable_offset": 0,
 "zero_suppress": 1  // If true, do not keep digitPMTs if the waveform never passes threshold
+"relative_to_crossing": 0, // If true, digitised time will be the time of threshold crossing. If false, it will be the peak time
+"positive_pulse": 0, // If true, pulses have positive voltage 
+
 }
 
 {

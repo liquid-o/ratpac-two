@@ -29,6 +29,8 @@ void WaveformPrep::Configure(const std::string& analyzer_name) {
     fChargeThresh = fDigit->GetD("sliding_window_thresh");
     fApplyCableOffset = fDigit->GetI("apply_cable_offset");
     fZeroSuppress = fDigit->GetI("zero_suppress");
+    fPositivePulse = fDigit->GetI("positive_pulse");
+    fThresholdCrossing = fDigit->GetI("relative_to_crossing");
   } catch (DBNotFoundError) {
     RAT::Log::Die("WaveformAnalysis: Unable to find analysis parameters.");
   }
@@ -51,6 +53,10 @@ void WaveformPrep::SetI(std::string param, int value) {
     fApplyCableOffset = value;
   } else if (param == "zero_suppress") {
     fZeroSuppress = value;
+  } else if (param == "positive_pulse") {
+    fPositivePulse = value;
+  } else if (param == "relative_to_crossing") {
+    fThresholdCrossing = value;
   } else {
     throw Processor::ParamUnknown(param);
   }
@@ -106,29 +112,45 @@ void WaveformPrep::RunAnalysis(DS::DigitPMT* digitpmt, int pmtID, DS::Digit* dsd
 
 void WaveformPrep::DoAnalysis(DS::DigitPMT* digitpmt, const std::vector<UShort_t>& digitWfm, double timeOffset) {
   // Calculate baseline in ADC units
-  double pedestal = WaveformUtil::CalculatePedestalADC(digitWfm, fPedWindowLow, fPedWindowHigh);
+  double pedestal = WaveformUtil::CalculatePedestalSlidingWindowADC(digitWfm, fPedWindowHigh - fPedWindowLow);
 
   // Convert from ADC to mV
   std::vector<double> voltWfm = WaveformUtil::ADCtoVoltage(digitWfm, fVoltageRes, pedestal = pedestal);
 
   // Calculate highest peak in mV
-  std::pair<int, double> peak = WaveformUtil::FindHighestPeak(voltWfm);
+  std::pair<int, double> peak = WaveformUtil::FindHighestPeak(voltWfm, fPositivePulse);
   int samplePeak = peak.first;
   double voltagePeak = peak.second;
 
   // Get the total number of threshold crossings
-  std::tuple<int, double, double> crossingsInfo = WaveformUtil::GetCrossingsInfo(voltWfm, fThreshold, fTimeStep);
+  std::tuple<int, double, double> crossingsInfo = WaveformUtil::GetCrossingsInfo(voltWfm, fThreshold, fTimeStep, fPositivePulse);
   int nCrossings = std::get<0>(crossingsInfo);
   double timeOverThreshold = std::get<1>(crossingsInfo);
   double voltageOverThreshold = std::get<2>(crossingsInfo);
 
+  // Get the threshold crossing before the peak
+  int sampleCrossing = WaveformUtil::GetThresholdCrossingBeforePeak(voltWfm, samplePeak, fThreshold, fLookback, fTimeStep, fPositivePulse);
+  
   // Calculate the constant-fraction hit-time
   double digitTime = WaveformUtil::INVALID;
-  if (nCrossings > 0) digitTime = WaveformUtil::CalculateTimeCFD(voltWfm, samplePeak, fLookback, fTimeStep, fConstFrac);
+  double charge;
+  if (nCrossings > 0) {
+    if (!fThresholdCrossing) {
+      // use the constant fraction discriminator to calculate the time
+      digitTime = WaveformUtil::CalculateTimeCFD(voltWfm, samplePeak, fLookback, fTimeStep, fConstFrac, RAT::WaveformUtil::INVALID, fPositivePulse);
+      // Integrate the waveform relative to peak to calculate the charge
+      charge = WaveformUtil::IntegratePeak(voltWfm, samplePeak, fIntWindowLow, fIntWindowHigh, fTimeStep, fTermOhms, fPositivePulse);
+
+    } else {
+      // use the voltage threshold crossing to calculate the time
+      digitTime = WaveformUtil::CalculateTimeCFD(voltWfm, samplePeak, fLookback, fTimeStep, RAT::WaveformUtil::INVALID, fThreshold, fPositivePulse);
+      // Integrate the waveform using fixed integration window relative to threshold crossing to calculate the charge 
+      charge = WaveformUtil::IntegrateFixed(voltWfm, sampleCrossing, fIntWindowLow, fIntWindowHigh, fTimeStep, fTermOhms, fPositivePulse);
+    }
+  }
 
   // Integrate the waveform to calculate the charge
-  double charge = WaveformUtil::IntegratePeak(voltWfm, samplePeak, fIntWindowLow, fIntWindowHigh, fTimeStep, fTermOhms);
-  double totalCharge = WaveformUtil::IntegrateSliding(voltWfm, fSlidingWindow, fChargeThresh, fTimeStep, fTermOhms);
+  double totalCharge = WaveformUtil::IntegrateSliding(voltWfm, fSlidingWindow, fChargeThresh, fTimeStep, fTermOhms, fPositivePulse);
 
   digitpmt->SetTimeOffset(timeOffset);
   digitpmt->SetDigitizedTime(digitTime);
@@ -162,7 +184,7 @@ double WaveformPrep::RunAnalysisOnTrigger(int pmtID, Digitizer* fDigitizer) {
   fVoltageRes *= -1;  // Invert the voltage since the waveform goes ABOVE threshold when a trigger occurs
   trigger_threshold *= -1;
   // Calculate highest peak in mV
-  std::pair<int, double> peak = WaveformUtil::FindHighestPeak(voltWfm);
+  std::pair<int, double> peak = WaveformUtil::FindHighestPeak(voltWfm, fPositivePulse);
   int samplePeak = peak.first;
   // HACK: Store the old lookback value, restore after a trigger time analysis is done.
   double old_lookback = fLookback;

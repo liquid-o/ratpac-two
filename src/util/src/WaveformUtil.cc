@@ -22,16 +22,15 @@ std::vector<double> ADCtoVoltage(const std::vector<UShort_t> &adcWaveform, doubl
   return voltageWaveform;
 }
 
-std::pair<int, double> FindHighestPeak(const std::vector<double> &voltageWaveform) {
+std::pair<int, double> FindHighestPeak(const std::vector<double> &voltageWaveform, bool positivePulse) {
   /*
-  Calculate the highest peak (in mV) and the corresponding sample.
+  Calculate the highest peak (in mV) and the corresponding sample. Account for positive or negative pulses.
   */
-  double voltagePeak = INVALID;
+  double voltagePeak = positivePulse ? 0 : INVALID;
   int samplePeak = INVALID;
   for (size_t i = 0; i < voltageWaveform.size(); i++) {
     double voltage = voltageWaveform[i];
-    // Downward going pulse
-    if (voltage < voltagePeak) {
+    if ((voltage > voltagePeak && positivePulse) || (voltage < voltagePeak && !positivePulse)) {
       voltagePeak = voltage;
       samplePeak = i;
     }
@@ -40,7 +39,7 @@ std::pair<int, double> FindHighestPeak(const std::vector<double> &voltageWavefor
 }
 
 int GetThresholdCrossingBeforePeak(const std::vector<double> &waveform, int peakSample, double voltageThreshold,
-                                   int lookBack, double timeStep) {
+                                   int lookBack, double timeStep, bool positivePulse) {
   /*
   Identifies the sample at which threshold crossing occurs before a given peak
    */
@@ -64,18 +63,30 @@ int GetThresholdCrossingBeforePeak(const std::vector<double> &waveform, int peak
   }
 
   // Start at the peak and scan backwards
-  for (int i = peakSample; i >= back_window; i--) {
+  bool crossed = true;
+  for (int i = peakSample; i > back_window; i--) {
     double voltage = waveform[i];
 
-    if (voltage > voltageThreshold) {
+    if ((voltage < voltageThreshold && positivePulse && crossed) || (voltage > voltageThreshold && !positivePulse && crossed)) {
       thresholdCrossing = i;
+      crossed = false;
+    }
+
+    if ((voltage > voltageThreshold && positivePulse && !crossed) || (voltage < voltageThreshold && !positivePulse && !crossed)) {
+      crossed = true;
+    }
+
+    // Reached the begining of the waveform with no crossing found
+    // returned an invalid value
+    if (i == back_window && voltage == waveform[peakSample]) {
+      thresholdCrossing = INVALID;  // Invalid value for bad waveforms
       break;
     }
   }
   return thresholdCrossing;
 }
 
-int GetNCrossings(const std::vector<double> &waveform, double voltageThreshold) {
+int GetNCrossings(const std::vector<double> &waveform, double voltageThreshold, bool positivePulse) {
   /*
   Calculates the total number of threshold crossings
   */
@@ -86,8 +97,8 @@ int GetNCrossings(const std::vector<double> &waveform, double voltageThreshold) 
   for (size_t i = 0; i < waveform.size(); i++) {
     double voltage = waveform[i];
 
-    // If we crossed below threshold
-    if (voltage < voltageThreshold) {
+    // If we crossed threshold
+    if ((voltage < voltageThreshold && !positivePulse) || (voltage > voltageThreshold && positivePulse)) {
       // Not already below thresh, count the crossing
       if (!crossed) {
         nCrossings += 1;
@@ -95,8 +106,8 @@ int GetNCrossings(const std::vector<double> &waveform, double voltageThreshold) 
       // Mark that we crossed
       crossed = true;
     }
-    // If we are above threshold
-    if (voltage > voltageThreshold) {
+    // If we crossed back
+    if ((voltage > voltageThreshold && !positivePulse) || (voltage < voltageThreshold && positivePulse)) {
       crossed = false;
     }
   }
@@ -104,7 +115,7 @@ int GetNCrossings(const std::vector<double> &waveform, double voltageThreshold) 
 }
 
 std::tuple<int, double, double> GetCrossingsInfo(const std::vector<double> &waveform, double voltageThreshold,
-                                                 double timeStep) {
+                                                 double timeStep, bool positivePulse) {
   /*
   Calculates the total number of threshold crossings, time over threshold, and voltage over threshold
   */
@@ -117,8 +128,8 @@ std::tuple<int, double, double> GetCrossingsInfo(const std::vector<double> &wave
   for (size_t i = 0; i < waveform.size(); i++) {
     double voltage = waveform[i];
 
-    // If we crossed below threshold
-    if (voltage < voltageThreshold) {
+    // If we crossed threshold
+    if ((voltage < voltageThreshold && !positivePulse) || (voltage > voltageThreshold && positivePulse)) {
       // Not already below thresh, count the crossing
       if (!crossed) {
         nCrossings += 1;
@@ -128,8 +139,8 @@ std::tuple<int, double, double> GetCrossingsInfo(const std::vector<double> &wave
       voltageOverThreshold += voltage;
       crossed = true;
     }
-    // If we are above threshold
-    if (voltage > voltageThreshold) {
+    // If we are have crossed back
+    if ((voltage > voltageThreshold && !positivePulse) || (voltage < voltageThreshold && positivePulse)) {
       crossed = false;
     }
   }
@@ -137,7 +148,7 @@ std::tuple<int, double, double> GetCrossingsInfo(const std::vector<double> &wave
 }
 
 double CalculateTimeCFD(const std::vector<double> &waveform, int peakSample, int lookBack, double timeStep,
-                        double constFrac, double voltageThreshold) {
+                        double constFrac, double voltageThreshold, bool positivePulse) {
   /*
   Apply constant-fraction discriminator for a given peak
   */
@@ -148,7 +159,7 @@ double CalculateTimeCFD(const std::vector<double> &waveform, int peakSample, int
       Log::Die("WaveformUtil::CalculateTimeCFD: Must give either constFrac or voltageThreshold for CalculateTimeCFD.");
     }
   }
-  int time = GetThresholdCrossingBeforePeak(waveform, peakSample, voltageThreshold, lookBack, timeStep);
+  int time = GetThresholdCrossingBeforePeak(waveform, peakSample, voltageThreshold, lookBack, timeStep, positivePulse);
   if (time == INVALID) {
     // If we didn't find threshold crossing but we also weren't able to scan the entire lookback range
     // because we reached the beginning of the waveform, return 0 instead of INVALID... and don't interpolate.
@@ -172,7 +183,7 @@ double CalculateTimeCFD(const std::vector<double> &waveform, int peakSample, int
 }
 
 double IntegratePeak(const std::vector<double> &waveform, int peakSample, int intWindowLow, int intWindowHigh,
-                     double timeStep, double termOhms) {
+                     double timeStep, double termOhms, bool positivePulse) {
   /*
   Integrate the digitized waveform around the given peak to calculate charge
   */
@@ -192,13 +203,74 @@ double IntegratePeak(const std::vector<double> &waveform, int peakSample, int in
 
   for (int i = windowStart; i < windowEnd; i++) {
     double voltage = waveform[i];
-    charge += VoltagetoCharge(voltage, timeStep, termOhms);  // in pC
+    charge += VoltagetoCharge(voltage, timeStep, termOhms, positivePulse);  // in pC
   }
   return charge;
 }
 
+double IntegrateFixed(const std::vector<double>& waveform, int crossSample, int intWindowLow, int intWindowHigh,
+                     double timeStep, double termOhms, bool positivePulse) {
+  /*
+  Integrate the digitized waveform from given crossing point
+  */
+  double charge = 0;
+  int windowStart = crossSample - intWindowLow;
+  int windowEnd = crossSample + intWindowHigh;
+
+  // Make sure not to integrate past the end of the waveform
+  windowEnd = (static_cast<size_t>(windowEnd) > waveform.size()) ? waveform.size() : windowEnd;
+  // Make sure not to integrate before the waveform starts
+  windowStart = (windowStart < 0) ? 0 : windowStart;
+
+  if (static_cast<size_t>(windowStart) >= waveform.size()) {
+    charge = INVALID;  // Invalid value for bad waveforms
+    return charge;
+  }
+
+  for (int i = windowStart; i < windowEnd; i++) {
+    double voltage = waveform[i];
+    charge += VoltagetoCharge(voltage, timeStep, termOhms, positivePulse);  // in pC
+  }
+  return charge;
+}
+
+double mean(const std::vector<UShort_t>& v, size_t start, size_t len) {
+  double sum = 0.0;
+  for (size_t i = start; i < start + len; ++i) sum += v[i];
+  return sum / len;
+}
+
+double variance(const std::vector<UShort_t>& v, size_t start, size_t len, double mean_val) {
+  double var = 0.0;
+  for (size_t i = start; i < start + len; ++i)
+    var += (v[i] - mean_val) * (v[i] - mean_val);
+  return var / len;
+}
+
+double CalculatePedestalSlidingWindowADC(const std::vector<UShort_t>&waveform, int windowSize) {
+  /*
+  Calculate the baseline in a sliding window of given size.
+  */
+  if (windowSize <= 0) {
+    Log::Die("WaveformUtil: Window size must be positive.");
+  }
+
+  double pedestal = mean(waveform, 0, windowSize);
+  double minVar = std::numeric_limits<double>::max();
+
+  for (size_t i=0; i < waveform.size()-windowSize; ++i) {
+    double m = mean(waveform, i, windowSize);
+    double v = variance(waveform, i, windowSize, m);
+    if (m < pedestal) {
+      minVar = v;
+      pedestal = m;
+    }
+  }
+  return pedestal;
+} 
+
 double IntegrateSliding(const std::vector<double> &waveform, int slidingWindow, double chargeThresh, double timeStep,
-                        double termOhms) {
+                        double termOhms, bool positivePulse) {
   /*
   Integrate the digitized waveform over sliding windows to calculate a total charge
   */
@@ -211,7 +283,7 @@ double IntegrateSliding(const std::vector<double> &waveform, int slidingWindow, 
     int sample_end = (i + 1) * slidingWindow;
     for (int j = sample_start; j < sample_end; j++) {
       double voltage = waveform[j];
-      charge += VoltagetoCharge(voltage, timeStep, termOhms);  // in pC
+      charge += VoltagetoCharge(voltage, timeStep, termOhms, positivePulse);  // in pC
     }
     if (charge > chargeThresh) {
       total_charge += charge;

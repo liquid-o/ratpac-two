@@ -52,37 +52,48 @@ inline double CalculatePedestalmV(const std::vector<double>& waveform, int pedWi
   return CalculatePedestal<double>(waveform, pedWindowLow, pedWindowHigh);
 };
 
+double mean(const std::vector<UShort_t>& v, size_t start, size_t len);
+
+double variance(const std::vector<UShort_t>& v, size_t start, size_t len, double mean_val);
+
+double CalculatePedestalSlidingWindowADC(const std::vector<UShort_t>&waveform, int windowSize = 100);
+
 std::pair<int, double> FindHighestPeak(
-    const std::vector<double>& voltageWaveform);  // Returns pair (peak_sample, peak_voltage)
+    const std::vector<double>& voltageWaveform, bool positvePulse = false);  // Returns pair (peak_sample, peak_voltage)
 
 // Find the sample where a threshold crossing occurs before a given peak
 int GetThresholdCrossingBeforePeak(const std::vector<double>& waveform, int peakSample, double voltageThreshold,
-                                   int lookBack, double timeStep);
+                                   int lookBack, double timeStep, bool positivePulse = false);
 
 // Find total number of threshold crossings
-int GetNCrossings(const std::vector<double>& waveform, double voltageThreshold);
+int GetNCrossings(const std::vector<double>& waveform, double voltageThreshold, bool positivePulse = false);
 
 // Find total number of threshold crossings, time over threshold, and voltage over threshold
 std::tuple<int, double, double> GetCrossingsInfo(
     const std::vector<double>& waveform, double voltageThreshold,
-    double timeStep);  // Returns tuple (nCrossings, time_over_threshold, voltage_over_threshold)
+    double timeStep, bool positivePulse = false);  // Returns tuple (nCrossings, time_over_threshold, voltage_over_threshold)
 
 // Apply a constant fraction discriminator to calculate the threshold crossing for a given peak
 double CalculateTimeCFD(const std::vector<double>& waveform, int peakSample, int lookBack, double timeStep,
-                        double constFrac = INVALID, double voltageThreshold = INVALID);
+                        double constFrac = INVALID, double voltageThreshold = INVALID, bool positivePulse = false);
 
 // calculate charge (pC) from voltage (mV)
-inline double VoltagetoCharge(double voltage, double timeStep, double termOhms) {
-  return (-voltage * timeStep) / termOhms;
+inline double VoltagetoCharge(double voltage, double timeStep, double termOhms, bool positivePulse = false) {
+  double charge = positivePulse ? (voltage * timeStep) / termOhms : (-voltage * timeStep) / termOhms;
+  return charge;
 };
 
 // Integrate around a peak to find charge
 double IntegratePeak(const std::vector<double>& waveform, int peakSample, int intWindowLow, int intWindowHigh,
-                     double timeStep, double termOhms);
+                     double timeStep, double termOhms, bool positivePulse = false);
+
+// Integrate over a fixed window relative to the threshold crossing
+double IntegrateFixed(const std::vector<double>& waveform, int crossSample, int intWindowLow, int intWindowHigh,
+                     double timeStep, double termOhms, bool positivePulse = false);
 
 // Integrate waveform in sliding windows to find total charge
 double IntegrateSliding(const std::vector<double>& waveform, int slidingWindow, double chargeThresh, double timeStep,
-                        double termOhms);
+                        double termOhms, bool positivePulse = false);
 
 // Perform convolution using Fast Fourier Transform (FFT).
 // Output of vectors of length and N and M have length N + M - 1.
