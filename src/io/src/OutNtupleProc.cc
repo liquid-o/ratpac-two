@@ -21,7 +21,6 @@
 #include <iostream>
 #include <numeric>
 #include <sstream>
-#include <stlplus/string_utilities.hpp>
 #include <string>
 #include <vector>
 
@@ -189,6 +188,7 @@ bool OutNtupleProc::OpenFile(std::string filename) {
     outputTree->Branch("digitPMTID", &digitPMTID);
     outputTree->Branch("digitTime", &digitTime);
     outputTree->Branch("digitCharge", &digitCharge);
+    outputTree->Branch("digitNonLinearCharge", &digitNonLinearCharge);
     outputTree->Branch("digitNCrossings", &digitNCrossings);
     outputTree->Branch("digitNhitsCleaned", &digitHitCleanedNhits);
     outputTree->Branch("digitHitCleaningMask", &digitHitCleaningMask);
@@ -583,6 +583,7 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
       digitNhits = 0;
       digitTime.clear();
       digitCharge.clear();
+      digitNonLinearCharge.clear();
       digitNCrossings.clear();
       digitTimeOverThreshold.clear();
       digitVoltageOverThreshold.clear();
@@ -610,6 +611,7 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
         digitPMTID.push_back(digitpmt->GetID());
         digitTime.push_back(digitpmt->GetDigitizedTime());
         digitCharge.push_back(digitpmt->GetDigitizedCharge());
+        digitNonLinearCharge.push_back(digitpmt->GetNonLinearCharge());
         digitNCrossings.push_back(digitpmt->GetNCrossings());
         digitTimeOverThreshold.push_back(digitpmt->GetTimeOverThreshold());
         digitReconNPEs.push_back(digitpmt->GetReconNPEs());
@@ -690,6 +692,7 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
       digitNhits = 0;
       digitTime.clear();
       digitCharge.clear();
+      digitNonLinearCharge.clear();
       digitNCrossings.clear();
       digitVoltageOverThreshold.clear();
       digitTimeOverThreshold.clear();

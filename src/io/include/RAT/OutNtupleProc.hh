@@ -199,6 +199,7 @@ class OutNtupleProc : public Processor {
   std::vector<double> digitCharge;
   std::vector<double> digitTimeOverThreshold;
   std::vector<double> digitVoltageOverThreshold;
+  std::vector<double> digitNonLinearCharge;
   std::vector<double> digitLocalTriggerTime;
   std::vector<int> digitReconNPEs;
   std::vector<int> digitNCrossings;
