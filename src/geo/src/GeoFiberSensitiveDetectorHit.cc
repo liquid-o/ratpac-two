@@ -27,6 +27,8 @@ GeoFiberSensitiveDetectorHit::GeoFiberSensitiveDetectorHit(const GeoFiberSensiti
   hit_pos = right.hit_pos;
   rot = right.rot;
   pLogV = right.pLogV;
+  proc = right.proc;
+  readout_ch_nums = right.readout_ch_nums;
 }
 
 const GeoFiberSensitiveDetectorHit &GeoFiberSensitiveDetectorHit::operator=(const GeoFiberSensitiveDetectorHit &right) {
@@ -36,6 +38,8 @@ const GeoFiberSensitiveDetectorHit &GeoFiberSensitiveDetectorHit::operator=(cons
   hit_pos = right.hit_pos;
   rot = right.rot;
   pLogV = right.pLogV;
+  proc = right.proc;
+  readout_ch_nums = right.readout_ch_nums;
   return *this;
 }
 
