@@ -9,6 +9,9 @@
 
   //Pulse shape to use for analytic type. Options are lognormal or gaussian.
   "pulse_shape": "lognormal",
+
+  //Whether to normalize pulses or not
+  "normalize_pulse": 0,
   
   //Universal pulse parameters
   "pulse_offset": 0.0,

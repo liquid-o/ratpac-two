@@ -24,6 +24,7 @@ class PMTWaveformGenerator {
   DBLinkPtr lpulse;
   std::string fPMTPulseType;
   std::string fPMTPulseShape;
+  bool fNormalizePulse;  // true: normalize pulse, false: don't normalize pulse
 
   // Universal pulse parameters
   double fPMTPulseMin;

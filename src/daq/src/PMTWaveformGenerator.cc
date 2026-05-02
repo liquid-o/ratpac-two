@@ -85,6 +85,18 @@ PMTWaveformGenerator::PMTWaveformGenerator(std::string modelName) {
     fPMTPulseShapeTimes = lpulse->GetDArray("pulse_shape_times");
     fPMTPulseShapeValues = lpulse->GetDArray("pulse_shape_values");
   }
+
+  try {
+    fNormalizePulse = lpulse->GetZ("normalize_pulse");
+    if (fNormalizePulse) {
+      info << "PMTWaveformGenerator: Using normalized pulses for " << modelName << "." << newline;
+    } else {
+      info << "PMTWaveformGenerator: Using non-normalized pulses for " << modelName << "." << newline;
+    }
+  } catch (DBNotFoundError &e) {
+    fNormalizePulse = true;
+    info << "PMTWaveformGenerator: Could not find normalization option for " << modelName << ". Using normalized pulses as default." << newline;
+  }
 }
 
 PMTWaveformGenerator::~PMTWaveformGenerator() {}
@@ -120,36 +132,46 @@ PMTWaveform PMTWaveformGenerator::GenerateWaveforms(DS::MCPMT *mcpmt, double tri
     pmtpulse->SetPulseStartTime(mcpe->GetFrontEndTime() - triggerTime);
     pmtpulse->SetPulsePolarity(fPMTPulsePolarity);
 
-    // Optional calibration parameter that scales the width of pulses for
-    // individual channels, with a default value of 1.
-    double pulse_width_scale =
-        DS::RunStore::GetCurrentRun()->GetChannelStatus()->GetPulseWidthScaleByPMTID(mcpmt->GetID());
+    if (!fNormalizePulse) {
+      // Skip width scaling and renormalization for non-normalized pulses
+      if (fPMTPulseType == "analytic") {
+        if (fPMTPulseShape == "lognormal") {
+          pmtpulse->SetLogNPulseWidth(fLogNPulseWidth);
+          pmtpulse->SetLogNPulseMean(fLogNPulseMean);
+        } else if (fPMTPulseShape == "gaussian") {
+          pmtpulse->SetGausPulseWidth(PickGaussianWidth());
+        }
+      } else if (fPMTPulseType == "datadriven") {
+        pmtpulse->SetPulseShapeTimes(fPMTPulseShapeTimes);
+        pmtpulse->SetPulseShapeValues(fPMTPulseShapeValues);
+      }
+    } else {
+      // Calibration parameter that scales the width of pulses for individual channels, with a default value of 1.
+      double pulse_width_scale = DS::RunStore::GetCurrentRun()->GetChannelStatus()->GetPulseWidthScaleByPMTID(mcpmt->GetID());
 
-    if (fPMTPulseType == "analytic") {
-      if (fPMTPulseShape == "lognormal") {
-        pmtpulse->SetLogNPulseWidth(fLogNPulseWidth);
-        pmtpulse->SetLogNPulseMean(pulse_width_scale * fLogNPulseMean);
-      } else if (fPMTPulseShape == "gaussian") {
-        pmtpulse->SetGausPulseWidth(pulse_width_scale * PickGaussianWidth());
+      if (fPMTPulseType == "analytic") {
+        if (fPMTPulseShape == "lognormal") {
+          pmtpulse->SetLogNPulseWidth(fLogNPulseWidth);
+          pmtpulse->SetLogNPulseMean(pulse_width_scale * fLogNPulseMean);
+        } else if (fPMTPulseShape == "gaussian") {
+          pmtpulse->SetGausPulseWidth(pulse_width_scale * PickGaussianWidth());
+        }
+      } else if (fPMTPulseType == "datadriven") {
+        std::vector<double> newPulseTimes(fPMTPulseShapeTimes.size());
+        std::vector<double> newPulseValues(fPMTPulseShapeValues.size());
+        std::transform(fPMTPulseShapeTimes.begin(), fPMTPulseShapeTimes.end(), newPulseTimes.begin(),
+                       [pulse_width_scale](double t) { return t * pulse_width_scale; });
+        double integral = 0.0;
+        for (size_t i = 0; i < newPulseTimes.size() - 1; i++) {
+          integral += (newPulseTimes[i + 1] - newPulseTimes[i]) *
+                      (fPMTPulseShapeValues[i] + fPMTPulseShapeValues[i + 1]) / 2.0;
+        }
+        for (size_t i = 0; i < newPulseValues.size(); i++) {
+          newPulseValues[i] /= integral;
+        }
+        pmtpulse->SetPulseShapeTimes(newPulseTimes);
+        pmtpulse->SetPulseShapeValues(newPulseValues);
       }
-    } else if (fPMTPulseType == "datadriven") {
-      std::vector<double> newPulseTimes(fPMTPulseShapeTimes.size());
-      std::vector<double> newPulseValues(fPMTPulseShapeValues.size());
-      // scale pulse width
-      std::transform(fPMTPulseShapeTimes.begin(), fPMTPulseShapeTimes.end(), newPulseTimes.begin(),
-                     [pulse_width_scale](double t) { return t * pulse_width_scale; });
-      // re-normalize pulse shape
-      double integral = 0.0;
-      for (size_t i = 0; i < newPulseTimes.size() - 1; i++) {
-        // trapezoidal integration
-        integral +=
-            (newPulseTimes[i + 1] - newPulseTimes[i]) * (fPMTPulseShapeValues[i] + fPMTPulseShapeValues[i + 1]) / 2.0;
-      }
-      for (size_t i = 0; i < newPulseValues.size(); i++) {
-        newPulseValues[i] /= integral;
-      }
-      pmtpulse->SetPulseShapeTimes(newPulseTimes);
-      pmtpulse->SetPulseShapeValues(newPulseValues);
     }
   }
 
