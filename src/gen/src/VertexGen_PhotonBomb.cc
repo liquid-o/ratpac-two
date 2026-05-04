@@ -6,6 +6,7 @@
 #include <G4PrimaryParticle.hh>
 #include <G4PrimaryVertex.hh>
 #include <G4ThreeVector.hh>
+#include <G4PhysicsOrderedFreeVector.hh>
 #include <RAT/DB.hh>
 #include <RAT/LinearInterp.hh>
 #include <RAT/Log.hh>
@@ -63,7 +64,59 @@ void VertexGen_PhotonBomb::GeneratePrimaryVertex(G4Event *event, G4ThreeVector &
     // Distribute times expoenentially, but don't bother picking a
     // random number if there is no time constant
     double expt = 0.0;
-    if (fExpTime > 0.0) expt = -fExpTime * log(G4UniformRand());
+
+    // if a material was specified, use the scintillation time profile
+    if (fMaterial != "")
+    {
+      // Get the scintillation time profile
+      DBLinkPtr loptics = DB::Get()->GetLink("OPTICS", fMaterial);
+      std::vector<double> decayTimes = loptics->GetDArray("SCINTWAVEFORM_value1");
+      std::vector<double> component = loptics->GetDArray("SCINTWAVEFORM_value2");
+      double riseTime = loptics->GetD("SCINT_RISE_TIME");
+      // Set the maximum time for the PDF to 30 times the longest decay constant. 
+      double maxtime = -30.0 * decayTimes[decayTimes.size() - 1];
+      // Set the bin width to 100 times smaller than the smallest decay constant. 
+      double mintime = -1.0 * decayTimes[0];
+      double bin_width = mintime / 100;
+      int nbins = ((int)(maxtime / bin_width)) + 1;
+
+      double *tval = new double[nbins];
+      double *ival = new double[nbins];
+
+      for (int ii = 0; ii < nbins; ii++) {
+        tval[ii] = ii * maxtime / nbins;
+        ival[ii] = 0.0;
+      }
+
+      double ampl, decy;
+      for (size_t j=0; j<decayTimes.size(); j++)
+      {
+        ampl = component[j];
+        decy = -decayTimes[j];
+        for (int ii = 0; ii < nbins; ii++) {
+          if (riseTime != 0.0)
+          {
+            ival[ii] += ampl * (decy * (1.0 - exp(-tval[ii] / decy)) + riseTime * (exp(-tval[ii] / riseTime) - 1)) / (decy - riseTime);
+          } else {
+            ival[ii] += ampl * (1.0 - exp(-tval[ii] / decy));
+          }
+        }
+      }
+
+      // Normalize the integral
+      for (int ii = 0; ii < nbins; ii++) {
+        ival[ii] /= ival[nbins - 1];
+      }
+      G4PhysicsOrderedFreeVector *timeIntegral = new G4PhysicsOrderedFreeVector(tval, ival, nbins);
+
+      // sample the time
+      double WFvalue = timeIntegral->GetMaxValue()*G4UniformRand();
+      expt = timeIntegral->GetEnergy(WFvalue);
+      delete[] tval;
+      delete[] ival;
+      delete timeIntegral;
+    }
+    else if (fExpTime > 0.0) expt = -fExpTime * log(G4UniformRand());
 
     G4PrimaryVertex *vertex = new G4PrimaryVertex(dx, dt + expt);
     G4PrimaryParticle *photon = new G4PrimaryParticle(fOpticalPhoton, mom.x(), mom.y(), mom.z());
