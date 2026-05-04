@@ -40,6 +40,8 @@ void FitDirectionCenterProc::SetS(std::string param, std::string value) {
 void FitDirectionCenterProc::SetI(std::string param, int value) {
   if (param == "pmt_type") {
     fPMTtype.push_back(value);
+  } else if (param == "verbose") {
+    fVerbose = value;
   } else
     throw ParamUnknown(param);
 }
@@ -413,21 +415,28 @@ Processor::Result FitDirectionCenterProc::Event(DS::Root *ds, DS::EV *ev) {
     angleDevMean = sqrt(angleSum2 / (numDir - 1));
   }
 
-  /// Save results
+  /// Save results based on verbosity setting
+  // 0: no values saved, 1: num_PMT, 2: previous and time_resid_* values, 3: previous and angle-related values
   if (directionMean.Mag2() > 0) {
     fitDC->SetEnableDirection(true);
     fitDC->SetValidDirection(true);
     fitDC->SetDirection(directionMean.Unit());
-    fitDC->SetFigureOfMerit("num_PMT", numDir);
-    fitDC->SetFigureOfMerit("time_resid_low", timeResLow);
-    fitDC->SetFigureOfMerit("time_resid_up", timeResUp);
-    fitDC->SetFigureOfMerit("angle_mean", angleMean);
-    fitDC->SetFigureOfMerit("angle_stddev", angleDevMean);
-    fitDC->SetFigureOfMerit("angle_octile7", angleO7);
-    fitDC->SetFigureOfMerit("angle_quartile3", angleQ3);
-    fitDC->SetFigureOfMerit("angle_median", angleMedian);
-    fitDC->SetFigureOfMerit("angle_quartile1", angleQ1);
-    fitDC->SetFigureOfMerit("angle_octile1", angleO1);
+    if (fVerbose >= 1) {
+      fitDC->SetFigureOfMerit("num_PMT", numDir);
+      if (fVerbose >= 2) {
+        fitDC->SetFigureOfMerit("time_resid_low", timeResLow);
+        fitDC->SetFigureOfMerit("time_resid_up", timeResUp);
+        if (fVerbose >= 3) {
+          fitDC->SetFigureOfMerit("angle_mean", angleMean);
+          fitDC->SetFigureOfMerit("angle_stddev", angleDevMean);
+          fitDC->SetFigureOfMerit("angle_octile7", angleO7);
+          fitDC->SetFigureOfMerit("angle_quartile3", angleQ3);
+          fitDC->SetFigureOfMerit("angle_median", angleMedian);
+          fitDC->SetFigureOfMerit("angle_quartile1", angleQ1);
+          fitDC->SetFigureOfMerit("angle_octile1", angleO1);   
+        }
+      }
+    }
   }
 
   ev->AddFitResult(fitDC);
