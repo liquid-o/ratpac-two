@@ -11,9 +11,12 @@
 
 namespace RAT {
 
+bool NoiseProc::sBeginOfRunCalled = false;
+
 NoiseProc::NoiseProc() : Processor("noise") {}
 
 void NoiseProc::BeginOfRun(DS::Run *run) {
+  sBeginOfRunCalled = true;
   DBLinkPtr lnoise = DB::Get()->GetLink("NOISEPROC");
 
   fNoiseFlag = lnoise->GetI("noise_flag");

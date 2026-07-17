@@ -24,6 +24,10 @@ class NoiseProc : public Processor {
   void SetD(std::string, double);
   void SetI(std::string param, int value);
 
+  // Set true the first time BeginOfRun() runs. Used by CrosstalkProc to
+  // verify that NoiseProc is upstream when noise is enabled.
+  static bool sBeginOfRunCalled;
+
  protected:
   double fDefaultNoiseRate;
   double fLookback;
