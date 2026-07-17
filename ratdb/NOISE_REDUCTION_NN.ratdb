@@ -1,0 +1,34 @@
+{
+"name": "NOISE_REDUCTION_NN",
+"run_range": [0, 0],
+
+// Master enable. 0 = processor is a no-op (event untouched).
+"enabled": 0,
+
+// Minimum number of surviving nearest neighbors a channel must have in
+// order to be kept. 0 = keep all. Default 3 — empirically the best S/N
+// operating point (see commit message).
+"nn_required": 3,
+
+// Two fibers are neighbors when the (x,y) distance between them lies
+// within [d_min, d_min * max_nn_distance_ratio], where d_min is the
+// distance from the target fiber to its nearest other fiber. 1.45
+// includes orthogonal (d_min) and diagonal (~1.414 * d_min) neighbors
+// on a square lattice, and the six equidistant neighbors on a hex
+// lattice, while excluding the second shell in either layout.
+"max_nn_distance_ratio": 1.45,
+
+// 1 = emit a run-level summary of the fiber pairing + neighbor map,
+// and per-event before/after counts at debug verbosity.
+"diagnostics": 1,
+
+// 1 = disable Rule A (two-sided fibers no longer auto-kept). Both-end
+// fibers still count as 2 in the neighbor sums for Rule B. With this
+// on the algorithm becomes a pure NN cut in (x,y). Default 1: the
+// auto-keep was rescuing accidental dark-count two-ended coincidences,
+// crushing S/N. At nn_required=3, disabling Rule A drops pure-noise
+// surviving hits ~89% while costing only ~5% of signal hits, for an
+// ~8x S/N gain. Set to 0 to restore the legacy "auto-keep two-sided"
+// behavior.
+"disable_rule_a": 1
+}

@@ -4,6 +4,7 @@
 add_library(daq OBJECT
   src/Digitizer.cc
   src/NoiseProc.cc
+  src/NoiseReductionNNProc.cc
   src/AfterPulseProc.cc
   src/PDFPMTCharge.cc
   src/PDFPMTTime.cc
