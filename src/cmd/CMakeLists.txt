@@ -7,6 +7,7 @@ add_library(cmd OBJECT
         src/DBMessenger.cc
         src/ESCrossSecMessenger.cc
         src/FastNeutronMessenger.cc
+        src/G4UIcmdWithOptionalStringAndADoubleAndUnit.cc
         src/GLG4DebugMessenger.cc
         src/GLG4PrimaryGeneratorMessenger.cc
         src/GLG4VisMessenger.cc
@@ -24,7 +25,9 @@ target_include_directories(cmd SYSTEM PUBLIC
         $<BUILD_INTERFACE:${RATPAC_INCLUDE_DIR}/stlplus>)
 target_include_directories(cmd PUBLIC
         $<BUILD_INTERFACE:${RATPAC_INCLUDE_DIR}>
-        $<INSTALL_INTERFACE:include>)
+        $<INSTALL_INTERFACE:include>
+        ${TENSORFLOW_INCLUDE_DIRS}
+        )
 
 # Copy our headers when installing
 file(COPY include/ DESTINATION ${RATPAC_INCLUDE_DIR})

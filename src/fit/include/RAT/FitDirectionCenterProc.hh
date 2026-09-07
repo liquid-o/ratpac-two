@@ -44,8 +44,6 @@ class FitDirectionCenterProc : public Processor {
   virtual Processor::Result Event(DS::Root *ds, DS::EV *ev);
 
  protected:
-  void SetPlaceholderFOM(DS::FitResult *fit);
-
   std::vector<int> fPMTtype;     // Types of PMT to use in reconstruction.  If empty, uses all PMT types.
   int fVerbose = 0;              // Save FOMs in FitResult.  1 saves num_PMT.  2 also saves time_resid_low and time_resid_up.  3 also saves angle-related values
   std::string fFitLabel = "";    // Label for the fit result.  User can specify.
@@ -57,7 +55,7 @@ class FitDirectionCenterProc : public Processor {
   double fTimeResUp = 50.0;      // Upper cut on time residuals in ns
   double fTimeResFracLow = 0.0;  // Lower cut on time residuals as a fraction in [0.0, 1.0)
   double fTimeResFracUp = 1.0;   // Upper cut on time residuals as a fraction in (0.0, 1.0]
-  double fLightSpeed = 0.0;      // mm / ns.  Speed of light in material.  Defaults to value in FITTER.ratdb
+  double fLightSpeed;            // mm / ns.  Speed of light in material.  Defaults to value in FIT_COMMON table.
   double fDrive = 0.0;           // mm.  User-specified bias applied to event positions.
   double fFixedTime = 0.0;       // ns.  User-specified event time.
   TVector3 fFixedPosition;       // mm.  User-specified event position.

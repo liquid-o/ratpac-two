@@ -14,7 +14,6 @@
 "pressure": 0.01,
 }
 
-
 {
 "name": "MATERIAL",
 "index": "air",
@@ -25,7 +24,6 @@
 "elemprop": [0.7, 0.3, ],
 "nmaterials": 0,
 }
-
 
 {
 "name": "MATERIAL",
@@ -38,7 +36,6 @@
 "elemprop": [0.1119, 0.8881],
 }
 
-
 {
 "name": "MATERIAL",
 "index": "aluminum",
@@ -49,7 +46,6 @@
 "elements": ["Aluminum"],
 "elemprop": [1.0],
 }
-
 
 {
 "name": "MATERIAL",
@@ -62,7 +58,6 @@
 "elemprop": [1.0],
 }
 
-
 {
 "name": "MATERIAL",
 "index": "brass",
@@ -74,7 +69,6 @@
 "elemprop": [0.66, 0.34],
 }
 
-
 {
 "name": "MATERIAL",
 "index": "brass_360", // C36000 "Free Machining" Brass
@@ -85,7 +79,6 @@
 "elements": ["Copper", "Zinc", "Lead", "Iron"],
 "elemprop": [0.615, 0.355, 0.0265, 0.0035],
 }
-
 
 {
 "name": "MATERIAL",
@@ -105,13 +98,13 @@
 "density": 7.87,
 "nelements": 3,
 "nmaterials": 0,
-"elements": ["Iron", "Chromium","Nitrogen"],
+"elements": ["Iron", "Chromium","Nickel"],
 "elemprop": [0.71, 0.19, 0.1],
 }
 
 {
 "name": "MATERIAL",
-"index": "stainless_steel_304H",
+"index": "stainless_steel_304H",  // 304 and 304H
 "run_range" : [0, 0],
 // Taken from https://www.sandmeyersteel.com/304H.html
 // Taking median amount of some elements. Iron makes up the remainder.
@@ -125,6 +118,44 @@
 "elemprop":[
   0.0008, 0.0200,  0.0075,  0.1900, 0.0925,
   0.00045, 0.00030, 0.0010, 0.68745
+],
+}
+
+{
+"name": "MATERIAL",
+"index": "stainless_steel_304L",
+"run_range" : [0, 0],
+// Taken from https://www.sandmeyersteel.com/alloy-304-304l/
+// Taking median amount of some elements. Iron makes up the remainder.
+"density": 7.90,
+"nelements": 9,
+"nmaterials": 0,
+"elements": [
+  "Carbon",     "Manganese", "Silicon",  "Chromium", "Nickel",
+  "Phosphorus", "Sulphur",   "Nitrogen", "Iron"
+],
+"elemprop":[
+  0.00030, 0.0200,  0.0075, 0.1900, 0.1000,
+  0.00045, 0.00030, 0.0010, 0.68045
+],
+}
+
+{
+"name": "MATERIAL",
+"index": "stainless_steel_316",
+"run_range" : [0, 0],
+// Taken from https://www.sandmeyersteel.com/alloy-316-316l/
+// Taking median amount of some elements. Iron makes up the remainder.
+"density": 7.90,
+"nelements": 10,
+"nmaterials": 0,
+"elements": [
+  "Carbon",     "Manganese",  "Silicon", "Chromium", "Nickel",
+  "Molybdenum", "Phosphorus", "Sulphur", "Nitrogen", "Iron"
+],
+"elemprop":[
+  0.0008, 0.0200,  0.0075, 0.1700, 0.1200,
+  0.0250, 0.00045, 0.0003, 0.001,  0.65495
 ],
 }
 
@@ -248,17 +279,6 @@
 
 {
 "name": "MATERIAL",
-"index": "AR_coating",
-"run_range" : [0, 0],
-"density": 1.14,
-"nelements": 3,
-"nmaterials": 0,
-"elements": ["Hydrogen", "Carbon", "Oxygen"],
-"elemprop": [0.0703, 0.558, 0.3717],
-}
-
-{
-"name": "MATERIAL",
 "index": "ZnO2",
 "run_range" : [0, 0],
 "density": 1.0,
@@ -308,16 +328,50 @@
 
 {
 "name": "MATERIAL",
-"index": "sapphire",
+"index": "AR_coating",
 "run_range" : [0, 0],
-"density": 3.98,
-"nelements": 2,
+"density": 1.14,
+"nelements": 3,
 "nmaterials": 0,
-"elements": ["Aluminum","Oxygen"],
-"elemprop": [0.52925, 0.47075],
+"elements": ["Hydrogen", "Carbon", "Oxygen"],
+"elemprop": [0.0703, 0.558, 0.3717],
 }
 
+{
+"name": "MATERIAL",
+"index": "glass",
+"run_range" : [0, 0],
+"density": 2.2,
+"nelements": 2,
+"nmaterials": 0,
+"elements": ["Silicon", "Oxygen",],
+"elemprop": [0.4675, 0.5325],
+}
+
+
 // ------------------- PMT materials ----------------
+
+{
+"name": "MATERIAL",
+"index": "borosilicate_glass",
+"run_range" : [0, 0],
+"density": 2.23, // g/cm^3, from Wikipedia
+"nelements": 3,
+"nmaterials": 0,
+"elements": ["Boron","Oxygen","Silicon",],
+"elemprop": [0.38889, 0.55873, 0.05238,],
+}
+
+{
+"name": "MATERIAL",
+"index": "hamamatsu_borosilicate_glass",
+"run_range" : [0, 0],
+"density": 2.23, // g/cm^3, from Wikipedia
+"nelements": 7,
+"nmaterials": 0,
+"elements": ["Lithium","Boron","Oxygen","Sodium","Aluminum","Silicon","Barium",],
+"elemprop": [0.001, 0.059, 0.523, 0.042, 0.049, 0.284, 0.042,],
+}
 
 {
 "name": "MATERIAL",
@@ -332,13 +386,49 @@
 
 {
 "name": "MATERIAL",
-"index": "glass",
+"index": "sapphire",
+"run_range" : [0, 0],
+"density": 3.98,
+"nelements": 2,
+"nmaterials": 0,
+"elements": ["Aluminum","Oxygen"],
+"elemprop": [0.52925, 0.47075],
+}
+
+{
+"name": "MATERIAL",
+"index": "MgF2",
+"run_range" : [0, 0],
+"density": 3.18,
+"nelements": 2,
+"nmaterials": 0,
+"elements": ["Magnesium","Fluorine"],
+"elemprop": [0.39, 0.61],
+}
+
+{
+"name": "MATERIAL",
+"index": "mirror",
 "run_range" : [0, 0],
 "density": 2.2,
 "nelements": 2,
 "nmaterials": 0,
 "elements": ["Silicon", "Oxygen",],
 "elemprop": [0.4675, 0.5325],
+}
+
+{
+"name": "MATERIAL",
+"index": "pmt_vacuum",
+"run_range" : [0, 0],
+"density": 1.0e-5,
+"nelements": 0,
+"nmaterials": 1,
+"materials": ["air",],
+"matprop": [1.0,],
+"state": "gas",
+"temperature": 273.15,
+"pressure": 0.01,
 }
 
 {
@@ -355,17 +445,6 @@
 {
 "name": "MATERIAL",
 "index": "shortpass_dichroic_placeholder",
-"run_range" : [0, 0],
-"density": 2.2,
-"nelements": 2,
-"nmaterials": 0,
-"elements": ["Silicon", "Oxygen",],
-"elemprop": [0.4675, 0.5325],
-}
-
-{
-"name": "MATERIAL",
-"index": "mirror",
 "run_range" : [0, 0],
 "density": 2.2,
 "nelements": 2,
@@ -429,7 +508,6 @@
 "elemprop": [1.0],
 }
 
-////   The photocathode material for the R5912-HQE
 {
 "name": "MATERIAL",
 "index": "photocathode_R5912_HQE",
@@ -452,7 +530,6 @@
 "elemprop": [1.0],
 }
 
-//// The photocathode material for the R1408.
 {
 "name": "MATERIAL",
 "index": "photocathode_R1408",
@@ -497,7 +574,6 @@
 "elemprop": [1.0],
 }
 
-// E.Keener at Penn, copied from photocathode_R7081HQE
 {
 "name": "MATERIAL",
 "index": "photocathode_R7081",
@@ -531,9 +607,6 @@
 "elemprop": [1.0],
 }
 
-
-
-////   The photocathode material for the ET 9390B
 {
 "name": "MATERIAL",
 "index": "photocathode_et9390b",
@@ -545,57 +618,8 @@
 "elemprop": [1.0],
 }
 
-{
-"name": "MATERIAL",
-"index": "pmt_vacuum",
-"run_range" : [0, 0],
-"density": 1.0e-5,
-"nelements": 0,
-"nmaterials": 1,
-"materials": ["air",],
-"matprop": [1.0,],
-"state": "gas",
-"temperature": 273.15,
-"pressure": 0.01,
-}
 
-//// Approximate Borosilicate glass
-{
-"name": "MATERIAL",
-"index": "borosilicate_glass",
-"run_range" : [0, 0],
-"density": 2.23, // g/cm^3, from Wikipedia
-"nelements": 3,
-"nmaterials": 0,
-"elements": ["Boron","Oxygen","Silicon",],
-"elemprop": [0.38889, 0.55873, 0.05238,],
-}
-
-//// hamamatsu borosilicate glass composition
-{
-"name": "MATERIAL",
-"index": "hamamatsu_borosilicate_glass",
-"run_range" : [0, 0],
-"density": 2.23, // g/cm^3, from Wikipedia
-"nelements": 7,
-"nmaterials": 0,
-"elements": ["Lithium","Boron","Oxygen","Sodium","Aluminum","Silicon","Barium",],
-"elemprop": [0.001, 0.059, 0.523, 0.042, 0.049, 0.284, 0.042,],
-}
-
-{
-"name": "MATERIAL",
-"index": "MgF2",
-"run_range" : [0, 0],
-"density": 3.18,
-"nelements": 2,
-"nmaterials": 0,
-"elements": ["Magnesium","Fluorine"],
-"elemprop": [0.39, 0.61],
-}
-
-
-// --------------- Liquid organic scintillator experiments ------------------
+// --------------- Liquid organic scintillators ------------------
 
 {
 "name": "MATERIAL",
@@ -607,30 +631,6 @@
 "elements": ["Carbon","Hydrogen",],
 "elemprop": [0.8563, 0.1437],
 "formula": "OIL",
-}
-
-{
-"name": "MATERIAL",
-"index": "scintillator",
-"run_range" : [0, 0],
-"density": 0.78,
-"nelements": 0,
-"nmaterials": 3,
-"materials": ["mineral_oil","pseudocumene", "ppo"],
-"matprop": [0.996984, 0.001919, 0.001097],
-}
-
-{
-"name": "MATERIAL",
-"index": "pseudocumene",
-"run_range" : [0, 0],
-"density": 0.8758,
-"nelements": 2,
-"nmaterials": 0,
-"elements": ["Carbon","Hydrogen"],
-"elemprop": [0.8994, 0.1006,],
-"formula": "AROMATIC",
-"mol": 7.50142e23,
 }
 
 {
@@ -657,17 +657,6 @@
 "elemprop": [0.8142, 0.0501, 0.0633, 0.0723],
 "formula": "FLUOR",
 "mol": 1.38092e24
-}
-
-{
-"name": "MATERIAL",
-"index": "gd_scintillator",
-"run_range" : [0, 0],
-"density": 0.846,
-"nelements": 0,
-"nmaterials": 4,
-"materials": ["G4_Gd","mineral_oil","pseudocumene", "ppo",],
-"matprop": [0.00199646, 0.798584, 0.19765, 0.00176991],
 }
 
 {
@@ -752,6 +741,7 @@
 "matprop": [0.999425, 0.000575],
 }
 
+
 // --------------------- Plastics ----------------------------
 
 {
@@ -775,8 +765,6 @@
 "elements": ["Carbon", "Fluorine",],
 "elemprop": [0.24018, 0.75982],
 }
-
-
 
 {
 "name": "MATERIAL",
@@ -901,28 +889,6 @@
 
 {
 "name": "MATERIAL",
-"index": "acrylic_uva_polycast",
-"run_range" : [0, 0],
-"density": 1.14,
-"nelements": 3,
-"nmaterials": 0,
-"elements": ["Hydrogen", "Carbon", "Oxygen"],
-"elemprop": [0.0703, 0.558, 0.3717],
-}
-
-{
-"name": "MATERIAL",
-"index": "acrylic_uva_reynolds",
-"run_range" : [0, 0],
-"density": 1.14,
-"nelements": 3,
-"nmaterials": 0,
-"elements": ["Hydrogen", "Carbon", "Oxygen"],
-"elemprop": [0.0703, 0.558, 0.3717],
-}
-
-{
-"name": "MATERIAL",
 "index": "nylon",
 "run_range" : [0, 0],
 "density": 0.805,
@@ -1000,6 +966,17 @@
 
 {
 "name": "MATERIAL",
+"index": "PEEK", // polyether ether ketone (C19H12O3)
+"run_range" : [0, 0],
+"density": 1.32,
+"nelements": 3,
+"nmaterials": 0,
+"elements": ["Carbon", "Hydrogen", "Oxygen"],
+"elemprop": [0.7915, 0.0420, 0.1665],
+}
+
+{
+"name": "MATERIAL",
 "index": "pet", // polyethylene terphthalate
 "run_range" : [0, 0],
 "density": 1.397, // from NIST database
@@ -1054,6 +1031,7 @@
 "formula": "AROMATIC",
 }
 
+
 // ------------------ Gunite ---------------------
 //Place holder for when we get more info
 {
@@ -1066,7 +1044,6 @@
 "elements": ["Silicon","Oxygen","Hydrogen","Calcium","Aluminum","Iron",],
 "elemprop": [0.227915, 0.60541, 0.09972, 0.04986, 0.014245, 0.00285],
 }
-
 
 
 // ------------------ Concrete ---------------------
@@ -1115,8 +1092,8 @@
 "elemprop": [0.337, 0.529, 0.01, 0.044, 0.034, 0.014, 0.002, 0.001, 0.016, 0.013],
 }
 
-// ----------------- Cryogenic scintillator experiments ---------------
 
+// ----------------- Cryogenic scintillators ---------------
 
 {
 "name": "MATERIAL",
@@ -1162,54 +1139,9 @@
 "nmaterials": 0,
 }
 
-/////////////    The dead versions are the same as the regular ones, but have
-/////////////    their scintillation turned off to speed up the simulation
-/////////////    where the light would otherwise not be detected anyways.
-{
-"name": "MATERIAL",
-"index": "dead_liquid_He",
-"run_range" : [0, 0],
-"density": 0.1451,
-"nelements": 1,
-"elements": ["Helium"],
-"elemprop": [1.0],
-"nmaterials": 0,
-}
-
-{
-"name": "MATERIAL",
-"index": "dead_liquid_Ne",
-"run_range" : [0, 0],
-"density": 1.2,
-"nelements": 1,
-"elements": ["Neon"],
-"elemprop": [1.0],
-"nmaterials": 0,
-}
-
-{
-"name": "MATERIAL",
-"index": "dead_liquid_Ar",
-"run_range" : [0, 0],
-"density": 1.4,
-"nelements": 1,
-"elements": ["Argon"],
-"elemprop": [1.0],
-"nmaterials": 0,
-}
-
-{
-"name": "MATERIAL",
-"index": "dead_liquid_Xe",
-"run_range" : [0, 0],
-"density": 2.978,
-"nelements": 1,
-"elements": ["Xenon"],
-"elemprop": [1.0],
-"nmaterials": 0,
-}
 
 // ------------------- other detector materials ----------------
+
 {
 "name": "MATERIAL",
 "index": "NaI",
@@ -1241,17 +1173,6 @@
 "nmaterials": 0,
 "elements": ["Lutetium", "Yttrium", "Silicon","Oxygen",],
 "elemprop": [0.7143,0.0408,0.0635,0.1814],
-}
-
-{
-"name": "MATERIAL",
-"index": "acrylic_uvt_eos_spec",
-"run_range" : [0, 0],
-"density": 1.14,
-"nelements": 3,
-"nmaterials": 0,
-"elements": ["Hydrogen", "Carbon", "Oxygen"],
-"elemprop": [0.0703, 0.558, 0.3717],
 }
 
 {

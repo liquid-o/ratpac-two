@@ -87,6 +87,7 @@ double rindex = lmedia->GetD("index_of_refraction");
 #include <RAT/HTTPDownloader.hh>
 #include <RAT/Log.hh>
 #include <deque>
+#include <limits>
 #include <list>
 #include <map>
 #include <set>
@@ -169,8 +170,9 @@ class DB : public DBFieldCallback {
    *  directory, all of the files in that directory ending in .ratdb
    *  will be loaded.
    *
-   *  The current directory is searched first, then the $RATSHARE/ratdb
-   *  directory.
+   *  The current directory is searched first, then each directory listed in
+   *  $RATDB_EXTRA_PATH (colon-separated, checked in order), then the
+   *  $RATSHARE/ratdb directory.
    *
    *  If printFullPath is true, then an info message is printed
    *  to stdout (and logged) indicating the path of the
@@ -201,7 +203,11 @@ class DB : public DBFieldCallback {
 
   /** Load standard tables into memory.
    *
-   *  Currently, the standard tables are $RATSHARE/ratdb/ *.ratdb.
+   *  Currently, the standard tables are $RATSHARE/ratdb/ *.ratdb, plus
+   *  *.ratdb in each directory listed in $RATDB_EXTRA_PATH (colon-separated).
+   *  Tables from $RATDB_EXTRA_PATH directories take priority and overwrite
+   *  same-named tables from $RATSHARE/ratdb; among multiple $RATDB_EXTRA_PATH
+   *  directories, earlier-listed ones take priority over later ones.
    */
   int LoadDefaults();
 
@@ -268,10 +274,18 @@ class DB : public DBFieldCallback {
   void SetArrayIndex(const std::string &tblname, const std::string &index, const std::string &fieldname, size_t idx,
                      const T &val);
 
-  /** Dump all tables in the db to a JSON file.
+  /** Sentinel for DumpContentsToJson's run argument: use the current default
+   *  run (GetDefaultRun()), as rat would when no run is given by hand. */
+  static constexpr int kUseDefaultRun = std::numeric_limits<int>::min();
+
+  /** Dump the effective database as seen at @p run: exactly one table per
+   *  (name, index), with each field holding the value that run would read out
+   *  (user plane overrides run plane overrides default plane). Tables are
+   *  emitted on the default plane so they resolve for any run on read-back.
+   *  When @p run is left at the default, GetDefaultRun() is used.
    * @todo: Currently doesn't support server tables
    * */
-  void DumpContentsToJson(std::ostream &stream);
+  void DumpContentsToJson(std::ostream &stream, int run = kUseDefaultRun);
 
   /************************DBLink interface********************/
   // This is the low level interface that DBLinks use.

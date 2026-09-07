@@ -28,12 +28,26 @@ Command:
 
     /rat/proc fitcentroid
 
-Parameters: None
+Parameters
+''''''''''
+All of the parameters below can be set in macro, which allows the processor to be run multiple times
+with different settings in a single macro.
+
+=========================   ==========================  ===================
+**Field**                   **Type**                    **Description**
+=========================   ==========================  ===================
+``label``                   ``string``                  Additional string appended to "fitcentroid"
+
+``pmt_type``                ``int``                     PMT "type" to use.  Multiple types can be used.  Defaults to all types.
+
+``power``                   ``double``                  Power to which PMT charge is raised.  Defaults to 2.
+``rescale``                 ``double``                  Linear scale by which PMT radial positions are multiplied.  Defaults to 1.
+=========================   ==========================  ===================
 
 Position fit information in data structure
 ''''''''''''''''''''''''''''''''''''''''''
 * name - "centroid"
-* figures of merit - None
+* figure of merit - None
 
 ----------------------
 
@@ -41,8 +55,44 @@ Position fit information in data structure
 
 Quad Fitter
 ===========
+The ``quadfitter`` processor reconstructs the vertex (position,time) of detector events using
+the median result of a large number of analytical solutions to quartets of hit PMT position vectors and times.
 
-Quad fitter details.
+Command:
+::
+
+    /rat/proc quadfitter
+
+Parameters
+''''''''''
+Several parameters have default values in FIT_QUAD table.  All of the parameters
+below can be set in macro, which allows the processor to be run multiple times with
+different settings in a single macro.  An example is given in macros/examples/quadfitter.mac
+
+**Field**                   **Type**                    **Description**
+``label``                   ``string``                  Additional string appended to "quadfitter"
+
+``pmt_type``                ``int``                     PMT "type" to use.  Multiple types can be used.  Defaults to all types.
+
+``num_points``              ``int``                     Maximum number of PMTs used
+``max_points``              ``int``                     Maximum number of quartet solutions used
+``table_cut_off``           ``int``                     Maximum size of table of all the ways to pick 4 numbers out of Nhit
+
+``light_speed``             ``double``                  Speed of light in material in mm/ns.  Defaults to value in FIT_COMMON table.
+
+``max_radius``              ``double``                  Maximum radius within which to consider reconstructing position
+``max_x``                   ``double``                  Optional Cartesian alternative to max_radius (must set all 3)
+``max_y``                   ``double``                  Optional Cartesian alternative to max_radius (must set all 3)
+``max_z``                   ``double``                  Optional Cartesian alternative to max_radius (must set all 3)
+
+``min_hit_time``            ``double``                  Optional lower cut on PMT hit times in ns
+``max_hit_time``            ``double``                  Optional upper cut on PMT hit times in ns
+
+Position fit information in data structure
+''''''''''''''''''''''''''''''''''''''''''
+* name - "quad"
+* figure of merit - None
+
 
 ----------------------
 
@@ -221,7 +271,7 @@ Parameters: None
 Classifier information in data structure
 ''''''''''''''''''''''''''''''''''''''''''
 * name - ``chargebalance``
-* figures of merit - None
+* classifier result - ``chargebalance`` is the stddev/mean of hit PMT charges
 
 ----------------------
 
@@ -243,7 +293,7 @@ Command:
 
 Parameters
 ''''''''''
-No parameters are required though a position reconstruction should be run before (or a fixed position specified) and a
+No parameters are required though a vertex reconstruction should be run before (or a fixed position and time specified) and a
 light speed is needed to calculate time residuals.  The light speed and a time window for the ratio are specified in
 CLASSIFIER.ratdb.  Several useful parameters can be set in macro, which allows the processor to be run multiple times
 with different settings in a single macro.  Detailed implementations are illustrated in macros/examples/classifytimes.mac.
@@ -251,11 +301,10 @@ with different settings in a single macro.  Detailed implementations are illustr
 =========================   ==========================  ===================
 **Field**                   **Type**                    **Description**
 =========================   ==========================  ===================
-``classifier_name``         ``string``                  Defaults to "classifytimes".
+``label``                   ``string``                  Suffix appended to base name "classifytimes".
 ``position_fitter``         ``string``                  Name of fitter providing position input.
 
 ``pmt_type``                ``int``                     PMT "type" to use.  Multiple types can be used.  Defaults to all types.
-``verbose``                 ``int``                     FOM save option.  1 saves ``num_PMT``'s.  2 also saves ``time_resid_low`` and ``time_resid_up``
 
 ``numer_time_resid_low``    ``double``                  Lower cut on time residuals in ns.  Used for ``ratio``.  Defaults to value in CLASSIFIER.ratdb.
 ``numer_time_resid_up``     ``double``                  Upper cut on time residuals in ns.  Used for ``ratio``.  Defaults to value in CLASSIFIER.ratdb.
@@ -506,6 +555,12 @@ This optimizer only supports **gradient-free** (derivative-free) algorithms. Gra
 
 Available Costs
 '''''''''''''''
+
+Cost functions read hits via ``FitterInputHandler`` and append one entry per
+PE returned by ``GetTimes``/``GetCharges``. With ``FIT_COMMON.mode = 2``
+(multi-PE waveform analysis) this is one entry per reconstructed
+photoelectron; in single-PE modes it is one entry per hit PMT. PDFs must be
+trained in the same mode they will be evaluated in.
 
 PMTTypeTimeResidualPDF
 ++++++++++++++++++++++

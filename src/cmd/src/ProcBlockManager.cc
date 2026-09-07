@@ -204,10 +204,21 @@ void ProcBlockManager::DoProcSetCmd(std::string cmdstring) {
   try {
     switch (t.Next()) {
       case Tokenizer::TYPE_INTEGER:
-        lastProc->SetI(param, t.AsInt());
+        try {
+          lastProc->SetI(param, t.AsInt());
+        } catch (Processor::ParamUnknown &) {
+          // Check if you can set it as a double
+          lastProc->SetD(param, static_cast<double>(t.AsInt()));
+        }
         break;
       case Tokenizer::TYPE_DOUBLE:
-        lastProc->SetD(param, t.AsDouble());
+        try {
+          lastProc->SetD(param, t.AsDouble());
+        } catch (Processor::ParamUnknown &) {
+          // Check if it is actually an int parameter
+          lastProc->SetI(param, 1);
+          throw Processor::ParamInvalid(param, "is an integer parameter.");
+        }
         break;
       case Tokenizer::TYPE_STRING:
         lastProc->SetS(param, t.Token());
@@ -215,6 +226,7 @@ void ProcBlockManager::DoProcSetCmd(std::string cmdstring) {
       default:
         Log::Die("DoProcSetCmd: Invalid value in /rat/procset " + cmdstring);
     }
+    lastProc->MarkParamSet(param);
   } catch (Processor::ParamUnknown &pu) {
     Log::Die("Parameter unknown: " + pu.param);
   } catch (Processor::ParamInvalid &pi) {

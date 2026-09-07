@@ -21,6 +21,15 @@ Parameters:
 
 * filename (required, string) Sets output filename.  File will be deleted if it already exists.
 
+The output file is meant to be a full representation of the RAT data structure, and can be re-introduced back into RAT for further processing via the InROOT processor. The file contains several objects:
+
+* ``log``: The RAT log messages as emitted during the processing of this file.
+* ``macro``: Content of the RAT macro used to generate this file.
+* `db`: A JSON representation of the state of the RATDB database at the time of processing this file. The recorded RATDB state is scoped to the run that these events are processed with.
+* `obj`: A directory of arbitrary objects that were added by a processor.
+* `runT`: A TTree object containing a DS::Run object for the run processed.
+* `T`: A TTree obejct containing DS::Root object for each event processed.
+
 .. _outntuple:
 
 outntuple
@@ -46,9 +55,21 @@ Parameters:
     /rat/procset include_digitizerwaveforms 1
     /rat/procset include_digitizerhits 1
     /rat/procset include_digitizerfits 1
+    /rat/procset waveform_fitters ["Lognormal","Gaussian","Sinc","LucyDDM","RAVEN"]
+    /rat/procset waveform_fitter_FOM_FITTERNAME ["FOM1","FOM2"]
+    /rat/procset event_fitters ["quadfitter","fitcentroid","fitdirectioncenter","mimir"]
+    /rat/procset event_fitter_FOM_FITTERNAME ["FOM1","FOM2"]
+    /rat/procset event_classifiers ["classifychargebalance","classifytimes"]
+    /rat/procset event_classifier_FOM_CLASSIFIERNAME ["FOM1","FOM2"]
 
-* filename (required, string) Sets output filename.  File will be deleted if it already exists.
-* include_* (optional, int) Sets whether the ntuple structure will be extended to include more variables, as detailed below. By default the following, based on the entries in IO.ratdb, the following are set to 0 by default: ``include_tracking``, ``include_mcparticles``, and ``include_digitizerwaveforms`` and the rest are set to 1 by default (i.e., the associated variables aare included in the ntuple file, as detailed below).
+* ``filename`` (required, string) Sets output filename.  File will be deleted if it already exists.
+* ``include_*`` (optional, int) Sets whether the ntuple structure will be extended to include more variables, as detailed below. By default the following, based on the entries in IO.ratdb, the following are set to 0 by default: ``include_tracking``, ``include_mcparticles``, and ``include_digitizerwaveforms`` and the rest are set to 1 by default (i.e., the associated variables aare included in the ntuple file, as detailed below).
+* ``waveform_fitters`` (optional, vector<string>) Waveform analysis algorithm results to include in the ntuple. See below for naming of the specific variables.
+* ``waveform_fitter_FOM_FITTERNAME`` (optional, vector<string>) The figure of merit to include for each waveform fitter. See below for naming of the specific variables.
+* ``event_fitters`` (optional, vector<string>) Event reconstruction algorithm results to include in the ntuple. See below for naming of the specific variables.
+* ``event_fitter_FOM_FITTERNAME`` (optional, vector<string>) The figure of merit to include for each event fitter. See below for naming of the specific variables. FOM can be specified by the base name of the reconstruction algorithm (e.g., ``event_fitter_FOM_quadfitter``) or by the specific instances of each algorithm (e.g. ``event_fitter_FOM_fitdirectioncenter__0_quad``).
+* ``event_classifiers`` (optional, vector<string>) Event classification algorithm results to include in the ntuple. See below for naming of the specific variables.
+* ``event_classifier_FOM_CLASSIFIERNAME`` (optional, vector<string>) The figure of merit to include for each event classifier. See below for naming of the specific variables. FOM can be specified by the base name of the classification algorithm (e.g., ``event_classifier_FOM_classifytimes``) or by the specific instances of each algorithm (e.g. ``event_classifier_FOM_classifytimes__5p0_quad``).
 
 Similarly to the outroot file, one can pass the filename using the "-o" flag by running the macro as::
 
@@ -115,6 +136,7 @@ The data-structure for the ``output`` tree is as follows. First, the "default" v
 ``nhits``                    int                  The total number of PMTs that detected light in the detector event.
 ``triggerTime``              double               The trigger time of the detector event, relative to the start of the simulation.
 ``timestamp``                double               The UTC time of the detector event.
+``triggerPeak``              double               The peak value of the trigger sum in units of hits (0 if not produced by the DAQ processor).
 ``timeSinceLastTrigger_us``  double               The time since the last triggered event, in microseconds. 
 ``event_cleaning_word``      ulong64              The list of event cleaning cuts that failed.
 ===========================  ===================  ===================
@@ -218,6 +240,11 @@ If ``include_mchits`` is set then we additionally add the following information 
 ``mcPEy``                      vector<double>       The true y position of the PE.
 ``mcPEz``                      vector<double>       The true z position of the PE.
 ``mcPECharge``                 vector<double>       The true charge of each PE.
+``mcPECreationTime``           vector<double>       The true time the photon that produced each PE started existing as its own track, including any scintillation emission delay, but before propagation to the PMT and electronics delays (ns). Always later than ``mcPEExcitationTime`` for scintillation/re-emission photons; see :ref:`photon_processes`.
+``mcPECreationX``              vector<double>       The true x position where the photon that produced each PE was created (mm).
+``mcPECreationY``              vector<double>       The true y position where the photon that produced each PE was created (mm).
+``mcPECreationZ``              vector<double>       The true z position where the photon that produced each PE was created (mm).
+``mcPEExcitationTime``         vector<double>       The true global time at the start of the step that produced the photon that created each PE (the ionizing particle's step for scintillation photons, or the absorbed photon's step for re-emitted photons), i.e. before the emission delay included in ``mcPECreationTime`` is added. NaN if not available (e.g. the photon is not from scintillation, such as Cherenkov light), in which case ``mcPECreationTime`` is still filled in as normal.
 =============================  ===================  ===================
 
 If ``include_tracking`` is set then we additionally add the following information to the ``output`` branch of the ntuple. These variables are filled from the ``RAT::DS::MCTrack`` and ``RAT::DS::MCTrackStep`` branches. The variables below are mostly 2D vectors. The inner vector is the set of steps along the particle track (``RAT::DS::MCTrackStep``) and the outer vector is the set of tracks along the particle trajectory (``RAT:DS::MCTrack``). In other words, each track can have many steps, each of which as an associated position, momentum, process, and volume. As a reminder, ``/tracking/storeTrajectory 1`` must also be set in the macro in order to save the tracking information.
@@ -234,6 +261,8 @@ If ``include_tracking`` is set then we additionally add the following informatio
 ``trackMomZ``                  vector<vector<double>>  The starting z momentum of each of the steps along the particle track.
 ``trackKE``                    vector<vector<double>>  The kinetic energy of each of the steps along the particle track.
 ``trackTime``                  vector<vector<double>>  The time, relative to the start of the simulation, of the particle steps.
+``trackDep``                   vector<vector<double>>  The energy deposited over each step.
+``trackQDep``                  vector<vector<double>>  The Birks' law quenched energy deposited over each step (0 if the step produced no scintillation light).
 ``trackProcess``               vector<vector<int>>     The ID of the process that created the step.
 ``trackVolume``                vector<vector<int>>     The ID of the detector volume the step started in.
 =============================  ======================  ===================
@@ -258,6 +287,26 @@ If ``include_digitizerwaveforms`` is set then we create a new branch in the ntup
 ``inWindowPulseCharges``       vector<double>       The list of MCPE charges that fall inside the waveform window.
 ``waveform``                   vector<ushort>       The digitized waveform, per PMT.
 =============================  ===================  ===================
+
+If ``event_fitters`` specify that event reconstruction algorithm results should be included in the ntuple, then we add the following variables to the ``output`` branch of the ntuple. These are filled from the ``DS::EventFitResult`` branch. All fitter instances are labeled by the "full name" of the fitter instance, which is the name of the fitter type + the instance name of the fitter separated by double underscores (e.g., ``quadfitter__instance1``). The variables are as follows:
+
+===================================   ===================  ===================
+**Name**                              **Type**             **Description**
+===================================   ===================  ===================
+``x_fitter__FULLNAME``                double               X coordinate of the reconstructed event vertex.
+``y_fitter__FULLNAME``                double               Y coordinate of the reconstructed event vertex.
+``z_fitter__FULLNAME``                double               Z coordinate of the reconstructed event vertex.
+``u_fitter__FULLNAME``                double               X component of the reconstructed event direction.
+``v_fitter__FULLNAME``                double               Y component of the reconstructed event direction.
+``w_fitter__FULLNAME``                double               Z component of the reconstructed event direction.
+``energy_fitter__FULLNAME``           double               Reconstructed event energy.
+``time_fitter__FULLNAME``             double               Reconstructed event time.
+``validposition_fitter__FULLNAME``    bool                 Whether the reconstructed event position is valid.
+``validdirection_fitter__FULLNAME``   bool                 Whether the reconstructed event direction is valid.
+``validenergy_fitter__FULLNAME``      bool                 Whether the reconstructed event energy is valid.
+``validtime_fitter__FULLNAME``        bool                 Whether the reconstructed event time is valid.
+``FOMNAME_fitter__FULLNAME``          double               A figure of merit for the event fit.
+===================================   ===================  ===================
 
 .. _outnet:
 

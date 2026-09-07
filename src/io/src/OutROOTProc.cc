@@ -3,6 +3,7 @@
 #include <TTree.h>
 
 #include <RAT/DB.hh>
+#include <RAT/DS/RootFactory.hh>
 #include <RAT/DS/RunStore.hh>
 #include <RAT/Log.hh>
 #include <RAT/ObjInt.hh>
@@ -20,7 +21,7 @@ OutROOTProc::OutROOTProc() : Processor("outroot") {
   tree = 0;
   autosave = 1024;  // kB
   savetree = true;
-  branchDS = new DS::Root();
+  branchDS = DS::RootFactory::Create();
   branchRun = new DS::Run();
 
   // Extract default filename from database.  Used if no
@@ -69,8 +70,12 @@ OutROOTProc::~OutROOTProc() {
     TObjString *macro = new TObjString(Log::GetMacro().c_str());
     macro->Write("macro");
 
-    TMap *dbtrace = Log::GetDBTraceMap();
-    dbtrace->Write("db", TObject::kSingleKey);
+    // Snapshot the full resolved RATDB so the geometry/materials can be
+    // reconstructed from this file alone (see DSReader::LoadDB).
+    std::ostringstream ratdb_dump;
+    DB::Get()->DumpContentsToJson(ratdb_dump);
+    TObjString *ratdb = new TObjString(ratdb_dump.str().c_str());
+    ratdb->Write("ratdb");
 
     // Save any objects that processors have logged
     f->mkdir("obj");
@@ -110,6 +115,8 @@ void OutROOTProc::SetS(std::string param, std::string value) {
     if (!OpenFile(value, false)) Log::Die("outroot: Cannot open file " + value);
   } else if (param == "updatefile") {
     if (!OpenFile(value, true)) Log::Die("outroot: Cannot open file " + value);
+  } else {
+    throw Processor::ParamUnknown(param);
   }
 }
 
@@ -125,6 +132,8 @@ void OutROOTProc::SetI(std::string param, int value) {
       savetree = false;
       info << "outroot: Not writing event tree!\n";
     }
+  } else {
+    throw Processor::ParamUnknown(param);
   }
 }
 

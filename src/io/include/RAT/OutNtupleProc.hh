@@ -5,9 +5,11 @@
 #include <TTree.h>
 #include <sys/types.h>
 
+#include <RAT/DS/Classifier.hh>
 #include <RAT/DS/FitResult.hh>
 #include <RAT/DS/Run.hh>
 #include <RAT/Processor.hh>
+#include <RAT/TransitTimeCalculator.hh>
 #include <functional>
 
 #include "Math/Types.h"
@@ -21,6 +23,7 @@ class OutNtupleProc : public Processor {
  public:
   static int run_num;
   OutNtupleProc();
+  void BeginOfRun(DS::Run *run) override;
 
   enum mc_pe_type { noise = 0, cherenkov = 1, scintillation = 2, reemission = 3, unknown = 4 };
 
@@ -68,6 +71,7 @@ class OutNtupleProc : public Processor {
     bool mchits;
     bool nthits;
     bool calib;
+    bool transittime;
   };
   NtupleOptions options;
 
@@ -75,6 +79,10 @@ class OutNtupleProc : public Processor {
   std::map<std::string, std::vector<std::string>> waveform_fitter_FOMs;
   std::vector<std::string> event_fitters;
   std::map<std::string, std::vector<std::string>> event_fitter_FOMs;
+  std::vector<std::string> event_classifiers;
+  std::map<std::string, std::vector<std::string>> event_classifier_FOMs;
+
+  std::unique_ptr<RAT::TransitTimeCalculator> fTransitTimeCalculator;
 
  protected:
   std::string defaultFilename;
@@ -133,6 +141,7 @@ class OutNtupleProc : public Processor {
   double mcu, mcv, mcw;
   double mcke;
   double mct;
+  std::vector<double> mcTransitTimes;
   int evid;
   int subev;
   int nhits;
@@ -140,6 +149,7 @@ class OutNtupleProc : public Processor {
   double triggerTime;
   ULong64_t timestamp;
   ULong64_t trigger_word;
+  double triggerPeak;
   ULong64_t event_cleaning_word;
   double timeSinceLastTrigger_us;
   // MC Summary Information
@@ -172,6 +182,11 @@ class OutNtupleProc : public Processor {
   std::vector<double> mcpey;
   std::vector<double> mcpez;
   std::vector<double> mcpecharge;
+  std::vector<double> mcpecreationtime;
+  std::vector<double> mcpecreationx;
+  std::vector<double> mcpecreationy;
+  std::vector<double> mcpecreationz;
+  std::vector<double> mcpeexcitationtime;
   // MCParticles
   int mcpcount;
   int mcid;
@@ -188,6 +203,7 @@ class OutNtupleProc : public Processor {
   std::map<std::string, double> fitvalues;
   std::map<std::string, bool> fitvalids;
   std::map<std::string, std::map<std::string, double>> fiteventFOMs;
+  std::map<std::string, std::map<std::string, double>> classifyeventFOMs;
   // Store PMT Hit Positions
   std::vector<int> hitPMTID;
   std::vector<double> hitPMTTime;
@@ -230,6 +246,8 @@ class OutNtupleProc : public Processor {
   std::vector<std::vector<double>> trackMomZ;
   std::vector<std::vector<double>> trackKE;
   std::vector<std::vector<double>> trackTime;
+  std::vector<std::vector<double>> trackDep;
+  std::vector<std::vector<double>> trackQDep;
   std::vector<std::vector<int>> trackProcess;
   std::vector<std::vector<int>> trackVolume;
 };

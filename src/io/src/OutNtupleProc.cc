@@ -20,6 +20,7 @@
 #include <RAT/OutNtupleProc.hh>
 #include <iostream>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -57,6 +58,7 @@ OutNtupleProc::OutNtupleProc() : Processor("outntuple") {
     options.mchits = table->GetZ("include_mchits");
     options.nthits = table->GetZ("include_nestedtubehits");
     options.calib = table->GetZ("include_calib");
+    options.transittime = table->GetZ("include_mctransittime");
   } catch (DBNotFoundError &e) {
     options.tracking = false;
     options.mcparticles = false;
@@ -75,15 +77,63 @@ OutNtupleProc::OutNtupleProc() : Processor("outntuple") {
         waveform_fitter_FOMs[fitter_name].clear();
       }
     }
-    event_fitters = table->GetSArray("event_fitters");
-    for (const std::string &full_name : event_fitters) {
-      if (event_fitter_FOMs.find(full_name) != event_fitter_FOMs.end()) continue;
+  }
+  event_fitters = table->GetSArray("event_fitters");
+  for (const std::string &full_name : event_fitters) {
+    if (event_fitter_FOMs.find(full_name) != event_fitter_FOMs.end()) continue;
+    std::set<std::string> fom_set;
+    // Load FOMs declared under the base fitter name (applies to all tagged variants)
+    try {
+      for (const std::string &fom : table->GetSArray("event_fitter_FOM_" + full_name)) {
+        fom_set.insert(fom);
+      }
+    } catch (DBNotFoundError &e) {
+      std::string fitter_name = DS::FitResult::GetFitterNameFromFullName(full_name);
       try {
-        event_fitter_FOMs[full_name] = table->GetSArray("event_fitter_FOM_" + full_name);
+        for (const std::string &fom : table->GetSArray("event_fitter_FOM_" + fitter_name)) {
+          fom_set.insert(fom);
+        }
       } catch (DBNotFoundError &e) {
-        event_fitter_FOMs[full_name].clear();
+        info << "No FOMs found for fitter " << full_name << " or " << fitter_name
+             << ". No FOM will be saved for this fitter." << newline;
       }
     }
+    event_fitter_FOMs[full_name] = std::vector<std::string>(fom_set.begin(), fom_set.end());
+  }
+  event_classifiers = table->GetSArray("event_classifiers");
+  for (const std::string &full_name : event_classifiers) {
+    if (event_classifier_FOMs.find(full_name) != event_classifier_FOMs.end()) continue;
+    std::set<std::string> fom_set;
+    // Load FOMs declared under the base classifier name (applies to all tagged variants)
+    try {
+      for (const std::string &fom : table->GetSArray("event_classifier_FOM_" + full_name)) {
+        fom_set.insert(fom);
+      }
+    } catch (DBNotFoundError &e) {
+      std::string classifier_name = DS::Classifier::GetClassifierNameFromFullName(full_name);
+      try {
+        for (const std::string &fom : table->GetSArray("event_classifier_FOM_" + classifier_name)) {
+          fom_set.insert(fom);
+        }
+      } catch (DBNotFoundError &e) {
+        info << "No FOMs found for classifier " << full_name << " or " << classifier_name
+             << ". No FOM will be saved for this classifier." << newline;
+      }
+    }
+    event_classifier_FOMs[full_name] = std::vector<std::string>(fom_set.begin(), fom_set.end());
+  }
+}
+
+void OutNtupleProc::BeginOfRun(DS::Run *run) {
+  info << "Running OUTNtuple BeginOfRun" << newline;
+  DBLinkPtr table = DB::Get()->GetLink("IO", "NtupleProc");
+  if (options.transittime) {
+    std::vector<std::string> ttime_cfg = table->GetSArray("transittime_calculator_config");
+    Log::Assert(ttime_cfg.size() == 2,
+                "transittime_calculator_config should have 2 entries: path calculator ID and velocity calculator ID");
+    fTransitTimeCalculator = std::make_unique<RAT::TransitTimeCalculator>(ttime_cfg[0], ttime_cfg[1]);
+    info << "Initialized TransitTimeCalculator with calculator ID " << ttime_cfg[0] << " and velocity calculator ID "
+         << ttime_cfg[1] << newline;
   }
 }
 
@@ -141,6 +191,9 @@ bool OutNtupleProc::OpenFile(std::string filename) {
   outputTree->Branch("mcw", &mcw);
   outputTree->Branch("mcke", &mcke);
   outputTree->Branch("mct", &mct);
+  if (options.transittime) {
+    outputTree->Branch("mcTransitTimesToPMTs", &mcTransitTimes);
+  }
   // Event IDs and trigger time and nhits
   outputTree->Branch("evid", &evid);
   outputTree->Branch("subev", &subev);
@@ -149,6 +202,7 @@ bool OutNtupleProc::OpenFile(std::string filename) {
   outputTree->Branch("triggerTime", &triggerTime);  // Local trigger time
   outputTree->Branch("timestamp", &timestamp);      // Global trigger time
   outputTree->Branch("trigger_word", &trigger_word);
+  outputTree->Branch("triggerPeak", &triggerPeak);
   outputTree->Branch("event_cleaning_word", &event_cleaning_word);
   outputTree->Branch("timeSinceLastTrigger_us", &timeSinceLastTrigger_us);
   // MC Information
@@ -226,6 +280,13 @@ bool OutNtupleProc::OpenFile(std::string filename) {
       outputTree->Branch(TString(fom_name + "_" + fitter_full_name), &fiteventFOMs[fitter_full_name][fom_name]);
     }
   }
+  for (const std::string &classifier_full_name : event_classifiers) {
+    // classifier names are specified as either classifiername__tag or just classifiername.
+    for (const std::string &fom_name : event_classifier_FOMs[classifier_full_name]) {
+      outputTree->Branch(TString(classifier_full_name + "_" + fom_name),
+                         &classifyeventFOMs[classifier_full_name][fom_name]);
+    }
+  }
   if (options.nthits) {
     outputTree->Branch("mcnNTs", &mcnNTs);
     outputTree->Branch("mcnNThits", &mcnNThits);
@@ -259,6 +320,11 @@ bool OutNtupleProc::OpenFile(std::string filename) {
     outputTree->Branch("mcPEy", &mcpey);
     outputTree->Branch("mcPEz", &mcpez);
     outputTree->Branch("mcPECharge", &mcpecharge);
+    outputTree->Branch("mcPECreationTime", &mcpecreationtime);
+    outputTree->Branch("mcPECreationX", &mcpecreationx);
+    outputTree->Branch("mcPECreationY", &mcpecreationy);
+    outputTree->Branch("mcPECreationZ", &mcpecreationz);
+    outputTree->Branch("mcPEExcitationTime", &mcpeexcitationtime);
   }
   if (options.tracking) {
     // Save particle tracking information
@@ -271,6 +337,8 @@ bool OutNtupleProc::OpenFile(std::string filename) {
     outputTree->Branch("trackMomZ", &trackMomZ);
     outputTree->Branch("trackKE", &trackKE);
     outputTree->Branch("trackTime", &trackTime);
+    outputTree->Branch("trackDep", &trackDep);
+    outputTree->Branch("trackQDep", &trackQDep);
     outputTree->Branch("trackProcess", &trackProcess);
     metaTree->Branch("processCodeMap", &processCodeMap);
     outputTree->Branch("trackVolume", &trackVolume);
@@ -357,6 +425,18 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
   mcw = mcpcount ? mcDirz[0] : -9999;
   mct = mcpcount ? mcTime[0] : -9999;
   mcke = accumulate(mcKEnergies.begin(), mcKEnergies.end(), 0.0);
+
+  // Transit time to PMTs
+  if (options.transittime) {
+    TVector3 event_vertex(mcx, mcy, mcz);
+    mcTransitTimes.clear();
+    for (int id = 0; id < pmtinfo->GetPMTCount(); id++) {
+      TVector3 pmt_pos = pmtinfo->GetPosition(id);
+      TransitTimeCalculator::Result ttime_result = fTransitTimeCalculator->Compute(event_vertex, pmt_pos);
+      mcTransitTimes.push_back(ttime_result.totalTime);
+    }
+  }
+
   // Tracking
   if (options.tracking) {
     int nTracks = mc->GetMCTrackCount();
@@ -370,12 +450,14 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
     trackMomZ.clear();
     trackKE.clear();
     trackTime.clear();
+    trackDep.clear();
+    trackQDep.clear();
     trackProcess.clear();
     trackVolume.clear();
 
     std::vector<double> xtrack, ytrack, ztrack;
     std::vector<double> pxtrack, pytrack, pztrack;
-    std::vector<double> kinetic, globaltime;
+    std::vector<double> kinetic, globaltime, deposited, quenchedDeposited;
     std::vector<int> processMapID;
     std::vector<int> volumeMapID;
     for (int trk = 0; trk < nTracks; trk++) {
@@ -389,6 +471,8 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
       pztrack.clear();
       kinetic.clear();
       globaltime.clear();
+      deposited.clear();
+      quenchedDeposited.clear();
       processMapID.clear();
       volumeMapID.clear();
       int nSteps = track->GetMCTrackStepCount();
@@ -414,6 +498,8 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
         TVector3 momentum = step->GetMomentum();
         kinetic.push_back(step->GetKE());
         globaltime.push_back(step->GetGlobalTime());
+        deposited.push_back(step->GetDepositedEnergy());
+        quenchedDeposited.push_back(step->GetQuenchedDepositedEnergy());
         xtrack.push_back(tv.X());
         ytrack.push_back(tv.Y());
         ztrack.push_back(tv.Z());
@@ -423,6 +509,8 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
       }
       trackKE.push_back(kinetic);
       trackTime.push_back(globaltime);
+      trackDep.push_back(deposited);
+      trackQDep.push_back(quenchedDeposited);
       trackPosX.push_back(xtrack);
       trackPosY.push_back(ytrack);
       trackPosZ.push_back(ztrack);
@@ -457,6 +545,11 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
   mcpey.clear();
   mcpez.clear();
   mcpecharge.clear();
+  mcpecreationtime.clear();
+  mcpecreationx.clear();
+  mcpecreationy.clear();
+  mcpecreationz.clear();
+  mcpeexcitationtime.clear();
 
   mcnhits = mc->GetMCPMTCount();
   mcpecount = mc->GetNumPE();
@@ -477,6 +570,12 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
         mcpey.push_back(position.Y());
         mcpez.push_back(position.Z());
         mcpecharge.push_back(mcph->GetCharge());
+        mcpecreationtime.push_back(mcph->GetCreationTime());
+        TVector3 creationPos = mcph->GetCreationPosition();
+        mcpecreationx.push_back(creationPos.X());
+        mcpecreationy.push_back(creationPos.Y());
+        mcpecreationz.push_back(creationPos.Z());
+        mcpeexcitationtime.push_back(mcph->GetExcitationTime());
         if (mcph->IsDarkHit()) {
           mcpeprocess.push_back(noise);
           continue;
@@ -519,8 +618,10 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
     triggerTime = ev->GetCalibratedTriggerTime();
     timestamp = TTimeStamp_to_UnixTime(ev->GetUTC()) - TTimeStamp_to_UnixTime(runBranch->GetStartTime()) + triggerTime;
     trigger_word = ev->GetTriggerWord();
+    triggerPeak = ev->GetTriggerPeak();
     event_cleaning_word = ev->GetEventCleaningWord();
     timeSinceLastTrigger_us = ev->GetDeltaT() / 1000.;
+
     for (DS::FitResult *fit : ev->GetFitResults()) {
       std::string full_name = fit->GetFullName();
       // Check the validity and write it out
@@ -555,6 +656,20 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
         fiteventFOMs[full_name][fom_name] = fit->GetFigureOfMerit(fom_name);
       }
     }
+
+    for (DS::Classifier *clf : ev->GetClassifierResults()) {
+      std::string full_name = clf->GetFullName();
+      // Check the validity and write it out
+      if (std::find(event_classifiers.begin(), event_classifiers.end(), full_name) == event_classifiers.end()) {
+        info << "Classifier " << full_name
+             << " not found in the list of requested classifiers. Will not be written to the ntuple." << newline;
+        continue;
+      }
+      for (const std::string &fom_name : event_classifier_FOMs[full_name]) {
+        classifyeventFOMs[full_name][fom_name] = clf->GetClassificationResult(fom_name);
+      }
+    }
+
     nhits = ev->GetPMTCount();
     totalcharge = ev->GetTotalCharge();
     if (options.pmthits) {
@@ -682,6 +797,7 @@ Processor::Result OutNtupleProc::DSEvent(DS::Root *ds) {
     nhits = -1;
     totalcharge = 0;
     triggerTime = 0;
+    triggerPeak = 0;
     timeSinceLastTrigger_us = 0;
     if (options.pmthits) {
       hitPMTID.clear();
@@ -792,36 +908,32 @@ void OutNtupleProc::EndOfRun(DS::Run *run) {
 void OutNtupleProc::SetS(std::string param, std::string value) {
   if (param == "file") {
     this->defaultFilename = value;
+  } else {
+    throw Processor::ParamUnknown(param);
   }
 }
 
 void OutNtupleProc::SetI(std::string param, int value) {
   if (param == "include_tracking") {
     options.tracking = value ? true : false;
-  }
-  if (param == "include_mcparticles") {
+  } else if (param == "include_mcparticles") {
     options.mcparticles = value ? true : false;
-  }
-  if (param == "include_pmthits") {
+  } else if (param == "include_pmthits") {
     options.pmthits = value ? true : false;
-  }
-  if (param == "include_nestedtubehits") {
+  } else if (param == "include_nestedtubehits") {
     options.nthits = value ? true : false;
-  }
-  if (param == "include_untriggered_events") {
+  } else if (param == "include_untriggered_events") {
     options.untriggered = value ? true : false;
-  }
-  if (param == "include_mchits") {
+  } else if (param == "include_mchits") {
     options.mchits = value ? true : false;
-  }
-  if (param == "include_digitizerwaveforms") {
+  } else if (param == "include_digitizerwaveforms") {
     options.digitizerwaveforms = value ? true : false;
-  }
-  if (param == "include_digitizerhits") {
+  } else if (param == "include_digitizerhits") {
     options.digitizerhits = value ? true : false;
-  }
-  if (param == "include_digitizerfits") {
+  } else if (param == "include_digitizerfits") {
     options.digitizerfits = value ? true : false;
+  } else {
+    throw Processor::ParamUnknown(param);
   }
 }
 

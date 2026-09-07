@@ -52,7 +52,15 @@ class EV : public TObject {
     pmt[id].SetID(id);
     return &pmt[id];
   }
-  const std::vector<Int_t> GetAllPMTIDs() {
+  virtual const PMT *GetPMT(Int_t id) const {
+    auto it = pmt.find(id);
+    if (it != pmt.end()) {
+      return &it->second;
+    }
+    return nullptr;
+  }
+
+  const std::vector<Int_t> GetAllPMTIDs() const {
     std::vector<Int_t> result;
     for (auto const &kv : pmt) {
       result.push_back(kv.first);
@@ -67,7 +75,14 @@ class EV : public TObject {
     digitpmt[id].SetID(id);
     return &digitpmt[id];
   }
-  const std::vector<Int_t> GetAllDigitPMTIDs() {
+  virtual const DigitPMT *GetDigitPMT(Int_t id) const {
+    auto it = digitpmt.find(id);
+    if (it != digitpmt.end()) {
+      return &it->second;
+    }
+    return nullptr;
+  }
+  const std::vector<Int_t> GetAllDigitPMTIDs() const {
     std::vector<Int_t> result;
     for (auto const &kv : digitpmt) {
       result.push_back(kv.first);
@@ -142,6 +157,10 @@ class EV : public TObject {
   Double_t GetTotalCharge() const { return qTotal; }
   void SetTotalCharge(Double_t _qTotal) { qTotal = _qTotal; }
 
+  /** Peak value of the DAQ trigger sum, in units of hits. */
+  Double_t GetTriggerPeak() const { return triggerPeak; }
+  void SetTriggerPeak(Double_t _triggerPeak) { triggerPeak = _triggerPeak; }
+
   /** Fit Results **/
   virtual std::vector<FitResult *> GetFitResults() { return fitResults; }
   virtual void AddFitResult(FitResult *fit) { fitResults.push_back(fit); }
@@ -182,7 +201,7 @@ class EV : public TObject {
     return (eventCleaningWord >> bit_position) & 0x1;
   }
 
-  ClassDef(EV, 6);
+  ClassDef(EV, 7);
 
  protected:
   Int_t id;
@@ -198,6 +217,7 @@ class EV : public TObject {
   std::vector<Classifier *> classifierResults;
   std::vector<Digit> digitizer;  ///< The digitizer information
   uint64_t eventCleaningWord = 0;
+  Double_t triggerPeak = 0;
 };
 
 }  // namespace DS

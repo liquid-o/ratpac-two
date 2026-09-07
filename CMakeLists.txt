@@ -17,7 +17,7 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 if(NOT RATVERSION_SEMVERS)
-  set(RATVERSION_SEMVERS 3.3.0)
+  set(RATVERSION_SEMVERS 4.2.0)
 endif()
 
 project(ratpac
@@ -95,22 +95,26 @@ endif()
 
 set(TENSORFLOW_Enabled 0)
 find_library(TENSORFLOW_LIBRARIES tensorflow)
-if(TENSORFLOW_LIBRARIES)
+find_path(TENSORFLOW_INCLUDE_DIRS tensorflow/c/c_api.h)
+if(TENSORFLOW_LIBRARIES AND TENSORFLOW_INCLUDE_DIRS)
   message(STATUS "Compiling with Tensorflow")
   set(TENSORFLOW_Enabled 1)
 else()
   message(WARNING "Tensorflow Not Found")
   set(TENSORFLOW_LIBRARIES "")
+  set(TENSORFLOW_INCLUDE_DIRS "")
 endif()
 
 set(NLOPT_Enabled 0)
 find_library(NLOPT_LIBRARIES nlopt)
-if(NLOPT_LIBRARIES)
+find_path(NLOPT_INCLUDE_DIRS nlopt.hpp)
+if(NLOPT_LIBRARIES AND NLOPT_INCLUDE_DIRS)
     message(STATUS "Compiling with NLOPT")
     set(NLOPT_Enabled 1)
 else()
     message(WARNING "NLOPT Not Found")
     set(NLOPT_LIBRARIES "")
+    set(NLOPT_INCLUDE_DIRS "")
 endif()
 
 ###########################################################
@@ -132,8 +136,8 @@ find_package(ROOT CONFIG REQUIRED COMPONENTS Minuit2 ROOTTPython MathMore)
 endif()
 include(${ROOT_USE_FILE})
 
-find_package(Geant4 REQUIRED)
-find_package(Geant4 QUIET OPTIONAL_COMPONENTS qt)
+find_package(Geant4 11.4 REQUIRED)
+find_package(Geant4 QUIET OPTIONAL_COMPONENTS vis_all ui_all)
 include(${Geant4_USE_FILE})
 include_directories(${Geant4_INCLUDE_DIRS})
 include_directories(${CLHEP_INCLUDE_DIRS})
@@ -141,7 +145,6 @@ include_directories(${XercesC_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
-find_package(FFTW3 CONFIG)
 pkg_check_modules(FFTW3 REQUIRED IMPORTED_TARGET fftw3)
 if (NOT TARGET FFTW3::fftw3)
   add_library(FFTW3::fftw3 ALIAS PkgConfig::FFTW3)
@@ -166,6 +169,10 @@ configure_file(${CMAKE_SOURCE_DIR}/config/ratpac.csh.in
 #configure_file(${CMAKE_SOURCE_DIR}/config/RatpacConfig.cmake.in
 #  ${PROJECT_SOURCE_DIR}/RatpacConfig.cmake
 #  @ONLY NEWLINE_STYLE UNIX)
+
+###########################################################
+# Helper functions
+include(${CMAKE_SOURCE_DIR}/cmake/RATDictionary.cmake)
 
 ###########################################################
 # Compile our libraries and executables
