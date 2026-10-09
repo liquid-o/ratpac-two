@@ -48,7 +48,8 @@ int GetThresholdCrossingBeforePeak(const std::vector<double> &waveform, int peak
   int lb = peakSample - int(lookBack / timeStep);
   int back_window = (lb > 0) ? lb : 0;
   // No threshold crossing if highest peak is below threshold
-  if (waveform.at(peakSample) > voltageThreshold) {
+  if ((positivePulse && waveform.at(peakSample) < voltageThreshold) ||
+      (!positivePulse && waveform.at(peakSample) > voltageThreshold)) {
     debug << "WaveformUtil::GetThresholdCrossingBeforePeak: Peak not above threshold.\n";
     return INVALID;
   }
