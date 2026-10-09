@@ -167,7 +167,7 @@ PMTWaveform PMTWaveformGenerator::GenerateWaveforms(DS::MCPMT *mcpmt, double tri
                       (fPMTPulseShapeValues[i] + fPMTPulseShapeValues[i + 1]) / 2.0;
         }
         for (size_t i = 0; i < newPulseValues.size(); i++) {
-          newPulseValues[i] /= integral;
+          newPulseValues[i] = fPMTPulseShapeValues[i] / integral;
         }
         pmtpulse->SetPulseShapeTimes(newPulseTimes);
         pmtpulse->SetPulseShapeValues(newPulseValues);
