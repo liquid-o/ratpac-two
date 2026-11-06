@@ -19,6 +19,7 @@
 #include <RAT/FitPathProc.hh>
 #include <RAT/FitQuadProc.hh>
 #include <RAT/FitTensorProc.hh>
+#include <RAT/FitTimeProc.hh>
 #include <RAT/ForcedTriggerProc.hh>
 #include <RAT/NoiseProc.hh>
 #include <RAT/NoiseReductionNNProc.hh>
@@ -90,6 +91,7 @@ ProcBlockManager::ProcBlockManager(ProcBlock *theMainBlock) {
   AppendProcessor<FitQuadProc>();
   AppendProcessor<FitDirectionCenterProc>();
   AppendProcessor<FitMimirProc>();
+  AppendProcessor<FitTimeProc>();
   // Classifiers
   AppendProcessor<ClassifyChargeBalance>();
   AppendProcessor<ClassifyTimesProc>();

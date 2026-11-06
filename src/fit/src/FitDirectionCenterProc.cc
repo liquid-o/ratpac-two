@@ -96,15 +96,17 @@ Processor::Result FitDirectionCenterProc::Event(DS::Root *ds, DS::EV *ev) {
   inputHandler.RegisterEvent(ev);
 
   DS::FitResult *fitDC = new DS::FitResult(name, fFitLabel);
+  fitDC->SetEnableDirection(true);
+  bool applyDrive = (!fDirFitter.empty() && fDrive != 0.0);
+  if (applyDrive)
+    fitDC->SetEnablePosition(true);
+  else if (fDrive != 0.0 && fDirFitter.empty())
+    Log::Die("FitDirectionCenterProc: No direction fitter specified while drive value is specified.");
+  else if (fDrive == 0.0 && !fDirFitter.empty())
+    Log::Die("FitDirectionCenterProc: No drive value specified while direction fitter \'" + fDirFitter +
+             "\' is specified.");
 
-  /// Initialize ALL parameters with placeholder values
-  fitDC->SetEnablePosition(false);
-  fitDC->SetValidPosition(false);
-  fitDC->SetPosition(TVector3(0, 0, 0));
-  fitDC->SetEnableDirection(false);
-  fitDC->SetValidDirection(false);
-  fitDC->SetDirection(TVector3(0, 0, 0));
-  // Figures of Merit
+  /// Initialize ALL Figures of Merit with placeholder values
   fitDC->SetFigureOfMerit("num_PMT", 0);
   fitDC->SetFigureOfMerit("time_resid_low", NAN);
   fitDC->SetFigureOfMerit("time_resid_up", NAN);
@@ -166,7 +168,6 @@ Processor::Result FitDirectionCenterProc::Event(DS::Root *ds, DS::EV *ev) {
   }
 
   // Apply drive correction
-  bool applyDrive = (!fDirFitter.empty() && fDrive != 0.0);
   if (applyDrive) {
     std::vector<RAT::DS::FitResult *> fits = ev->GetFitResults();
     if (fits.size() == 0) {
@@ -197,15 +198,8 @@ Processor::Result FitDirectionCenterProc::Event(DS::Root *ds, DS::EV *ev) {
     }
     // Save drive correction
     eventPos -= fDrive * eventDir;
-    fitDC->SetEnablePosition(true);
-    if (validPos && validDir) fitDC->SetValidPosition(true);
     fitDC->SetPosition(eventPos);
-
-  } else if (fDrive != 0.0 && fDirFitter.empty()) {
-    Log::Die("FitDirectionCenterProc: No direction fitter specified while drive value is specified.");
-  } else if (fDrive == 0.0 && !fDirFitter.empty()) {
-    Log::Die("FitDirectionCenterProc: No drive value specified while direction fitter \'" + fPosFitter +
-             "\' is specified.");
+    if (!validPos || !validDir) fitDC->SetValidPosition(false);
   }
 
   /// If fractional time cuts specified, determine cut times
@@ -417,8 +411,6 @@ Processor::Result FitDirectionCenterProc::Event(DS::Root *ds, DS::EV *ev) {
   /// Save results based on verbosity setting
   // 0: no values saved, 1: num_PMT, 2: previous and time_resid_* values, 3: previous and angle-related values
   if (directionMean.Mag2() > 0) {
-    fitDC->SetEnableDirection(true);
-    fitDC->SetValidDirection(true);
     fitDC->SetDirection(directionMean.Unit());
     if (fVerbose >= 1) {
       fitDC->SetFigureOfMerit("num_PMT", numDir);
