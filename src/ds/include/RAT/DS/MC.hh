@@ -21,6 +21,7 @@
 #include <RAT/DS/MCParticle.hh>
 #include <RAT/DS/MCSummary.hh>
 #include <RAT/DS/MCTrack.hh>
+#include <RAT/DS/MCOpticalPhotonSource.hh>
 #include <algorithm>
 #include <vector>
 
@@ -121,6 +122,19 @@ class MC : public TObject {
   virtual int GetNumDark() const { return numDarkHits; }
   virtual void SetNumDark(int _numDarkHits) { numDarkHits = _numDarkHits; }
 
+  /** Optical photons killed at creation for hand-off to a fast simulation.
+   *  Transient: filled only when MC.dump_optical_photons is set, and not
+   *  written to disk. Downstream processors must run before any prune. */
+  virtual MCOpticalPhotonSource *GetMCOpticalPhotonSource(int i) { return &opSource[i]; }
+  virtual const MCOpticalPhotonSource *GetMCOpticalPhotonSource(int i) const { return &opSource[i]; }
+  virtual int GetMCOpticalPhotonSourceCount() const { return opSource.size(); }
+  virtual MCOpticalPhotonSource *AddNewMCOpticalPhotonSource() {
+    opSource.resize(opSource.size() + 1);
+    return &opSource.back();
+  }
+  virtual void ReserveMCOpticalPhotonSource(size_t n) { opSource.reserve(n); }
+  virtual void PruneMCOpticalPhotonSource() { std::vector<MCOpticalPhotonSource>().swap(opSource); }
+
   /** Summary of detector level properties of this event */
   virtual MCSummary *GetMCSummary() {
     if (summary.empty()) {
@@ -144,6 +158,7 @@ class MC : public TObject {
   std::vector<MCTrack> track;
   std::vector<MCPMT> pmt;
   std::vector<MCNestedTube> nt;
+  std::vector<MCOpticalPhotonSource> opSource;  //! transient, not streamed
 };
 
 }  // namespace DS

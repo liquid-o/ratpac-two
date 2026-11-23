@@ -452,6 +452,21 @@ void Gsim::MakeEvent(const G4Event *g4ev, DS::Root *ds) {
   DS::MC *mc = ds->GetMC();
   EventInfo *exinfo = dynamic_cast<EventInfo *>(g4ev->GetUserInformation());
 
+  // Record optical photon source info
+  if (stackingAction->DumpEnabled()) {
+    const auto &src = stackingAction->Photons();
+    mc->ReserveMCOpticalPhotonSource(src.size());
+    for (const auto &r : src) {
+      DS::MCOpticalPhotonSource *s = mc->AddNewMCOpticalPhotonSource();
+      s->trackID = r.trackID;  s->parentID = r.parentID;
+      s->creatorProc = r.creatorProc;
+      s->x = r.x; s->y = r.y; s->z = r.z; s->t = r.t;
+      s->dx = r.dx; s->dy = r.dy; s->dz = r.dz;
+      s->px = r.px; s->py = r.py; s->pz = r.pz;
+      s->energy = r.energy; s->weight = r.weight;
+    }
+  }
+
   // Event Header
   ds->SetRunID(theRunManager->GetCurrentRun()->GetRunID());
   mc->SetID(g4ev->GetEventID());
