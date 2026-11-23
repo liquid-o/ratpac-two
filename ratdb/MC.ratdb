@@ -7,6 +7,9 @@
 // efficiency
 "thin_factor": 1.0,
 
+// Kill photons upon production, recording their information
+dump_optical_photons: 0,
+
 // simulate hadronic (i.e. neutron) physics processes
 "hadronic_processes": 0,
 
