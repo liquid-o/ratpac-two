@@ -23,19 +23,19 @@
 #include "G4VProcess.hh"
 
 // constructor
-StackingAction::StackingAction() {
-  try {
-    RAT::DBLinkPtr lmc = RAT::DB::Get()->GetLink("MC");
-    fDumpOpticalPhotons = lmc->GetI("dump_optical_photons") != 0;
-  } catch (RAT::DBNotFoundError &) {
-    fDumpOpticalPhotons = false;
-  }
-}
+StackingAction::StackingAction() {}
 
 // destructor
 StackingAction::~StackingAction() {}
 
-void StackingAction::PrepareNewEvent() { fPhotons.clear(); }
+void StackingAction::PrepareNewEvent() {
+  fPhotons.clear();
+  try {
+    fDumpOpticalPhotons = RAT::DB::Get()->GetLink("MC")->GetI("dump_optical_photons") != 0;
+  } catch (RAT::DBNotFoundError &) {
+    fDumpOpticalPhotons = false;
+  }
+}
 
 // Classify new tracks
 G4ClassificationOfNewTrack StackingAction::ClassifyNewTrack(const G4Track *track) {
