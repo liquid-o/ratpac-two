@@ -110,7 +110,8 @@ void Gsim::Init() {
 
   // Particle generator
   theRunManager->SetUserAction(new GLG4PrimaryGeneratorAction());
-  theRunManager->SetUserAction(new StackingAction);
+  stackingAction = new StackingAction;
+  theRunManager->SetUserAction(stackingAction);
 
   // Add RAT-specific generators
   GlobalFactory<GLG4VertexGen>::Register("ibd", new Alloc<GLG4VertexGen, VertexGen_IBD>);

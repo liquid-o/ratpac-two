@@ -23,6 +23,7 @@
 
 class G4RunManager;
 class GLG4DebugMessenger;
+class StackingAction;
 
 namespace RAT {
 
@@ -133,6 +134,8 @@ class Gsim : public Producer, G4UserRunAction, G4UserEventAction, G4UserTracking
   static std::map<G4String, double> fParticleTrajectoryCompactionMinTime;
 
   G4VisExecutive *theVisExecutive;
+
+  StackingAction *stackingAction = nullptr;
 };
 
 }  // namespace RAT
